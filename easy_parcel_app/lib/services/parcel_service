@@ -1,0 +1,105 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/parcel_model.dart';
+
+class ParcelService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  String _generateOTP() {
+    return (100000 + DateTime.now().millisecondsSinceEpoch % 900000).toString();
+  }
+
+  String _generateBarcode() {
+    return 'EP${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  Future<ParcelModel?> createParcel({
+    required String studentId,
+    required String studentName,
+    required String courierId,
+    required String courierName,
+    required String lockerNumber,
+  }) async {
+    try {
+      String parcelId = _firestore.collection('parcels').doc().id;
+      String otp = _generateOTP();
+      String barcode = _generateBarcode();
+      
+      ParcelModel newParcel = ParcelModel(
+        id: parcelId,
+        studentId: studentId,
+        studentName: studentName,
+        courierId: courierId,
+        courierName: courierName,
+        lockerNumber: lockerNumber,
+        status: 'delivered',
+        deliveryTime: DateTime.now(),
+        otp: otp,
+        barcode: barcode,
+      );
+
+      await _firestore
+          .collection('parcels')
+          .doc(parcelId)
+          .set(newParcel.toMap());
+
+      return newParcel;
+    } catch (e) {
+      print('Create parcel error: $e');
+      return null;
+    }
+  }
+
+  Stream<List<ParcelModel>> getParcelsForStudent(String studentId) {
+    return _firestore
+        .collection('parcels')
+        .where('studentId', isEqualTo: studentId)
+        .orderBy('deliveryTime', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ParcelModel.fromMap(doc.data()))
+          .toList();
+    });
+  }
+
+  Stream<List<ParcelModel>> getParcelsForCourier(String courierId) {
+    return _firestore
+        .collection('parcels')
+        .where('courierId', isEqualTo: courierId)
+        .orderBy('deliveryTime', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ParcelModel.fromMap(doc.data()))
+          .toList();
+    });
+  }
+
+  Future<bool> collectParcel(String parcelId, String enteredOTP) async {
+    try {
+      DocumentSnapshot doc = await _firestore
+          .collection('parcels')
+          .doc(parcelId)
+          .get();
+
+      if (doc.exists) {
+        ParcelModel parcel = ParcelModel.fromMap(doc.data() as Map<String, dynamic>);
+        
+        if (parcel.otp == enteredOTP && parcel.status == 'delivered') {
+          await _firestore
+              .collection('parcels')
+              .doc(parcelId)
+              .update({
+            'status': 'collected',
+            'collectionTime': DateTime.now().millisecondsSinceEpoch,
+          });
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      print('Collect parcel error: $e');
+      return false;
+    }
+  }
+}

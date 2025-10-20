@@ -1,0 +1,129 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/parcel_service.dart';
+import '../models/parcel_model.dart';
+
+class CourierHomeScreen extends StatefulWidget {
+  @override
+  _CourierHomeScreenState createState() => _CourierHomeScreenState();
+}
+
+class _CourierHomeScreenState extends State<CourierHomeScreen> {
+  final _studentIdController = TextEditingController();
+  final _studentNameController = TextEditingController();
+  final _lockerNumberController = TextEditingController();
+
+  void _deliverParcel(BuildContext context) async {
+    final parcelService = Provider.of<ParcelService>(context, listen: false);
+    final user = Provider.of<UserModel?>(context);
+
+    if (_studentIdController.text.isEmpty ||
+        _studentNameController.text.isEmpty ||
+        _lockerNumberController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    ParcelModel? parcel = await parcelService.createParcel(
+      studentId: _studentIdController.text.trim(),
+      studentName: _studentNameController.text.trim(),
+      courierId: user?.uid ?? '',
+      courierName: user?.name ?? '',
+      lockerNumber: _lockerNumberController.text.trim(),
+    );
+
+    if (parcel != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Parcel delivered successfully!')),
+      );
+      _studentIdController.clear();
+      _studentNameController.clear();
+      _lockerNumberController.clear();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Delivery failed')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final parcelService = Provider.of<ParcelService>(context);
+    final user = Provider.of<UserModel?>(context);
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Courier Dashboard'),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Deliver'),
+              Tab(text: 'History'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            // Deliver Tab
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _studentIdController,
+                    decoration: InputDecoration(labelText: 'Student ID'),
+                  ),
+                  SizedBox(height: 16),
+                  TextFormField(
+                    controller: _studentNameController,
+                    decoration: InputDecoration(labelText: 'Student Name'),
+                  ),
+                  SizedBox(height: 16),
+                  TextFormField(
+                    controller: _lockerNumberController,
+                    decoration: InputDecoration(labelText: 'Locker Number'),
+                  ),
+                  SizedBox(height: 30),
+                  ElevatedButton(
+                    onPressed: () => _deliverParcel(context),
+                    child: Text('Deliver Parcel'),
+                  ),
+                ],
+              ),
+            ),
+            // History Tab
+            StreamBuilder<List<ParcelModel>>(
+              stream: parcelService.getParcelsForCourier(user?.uid ?? ''),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                final parcels = snapshot.data ?? [];
+
+                if (parcels.isEmpty) {
+                  return Center(child: Text('No delivery history'));
+                }
+
+                return ListView.builder(
+                  itemCount: parcels.length,
+                  itemBuilder: (context, index) {
+                    final parcel = parcels[index];
+                    return ListTile(
+                      title: Text('Student: ${parcel.studentName}'),
+                      subtitle: Text('Locker: ${parcel.lockerNumber}'),
+                      trailing: Text(parcel.status),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

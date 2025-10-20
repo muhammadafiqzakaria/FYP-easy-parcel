@@ -1,0 +1,138 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/parcel_service.dart';
+import '../models/parcel_model.dart';
+
+class StudentHomeScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final parcelService = Provider.of<ParcelService>(context);
+    final user = Provider.of<UserModel?>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('My Parcels'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () {
+              // Add logout functionality
+            },
+          ),
+        ],
+      ),
+      body: StreamBuilder<List<ParcelModel>>(
+        stream: parcelService.getParcelsForStudent(user?.uid ?? ''),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          final parcels = snapshot.data ?? [];
+
+          if (parcels.isEmpty) {
+            return Center(child: Text('No parcels available'));
+          }
+
+          return ListView.builder(
+            itemCount: parcels.length,
+            itemBuilder: (context, index) {
+              final parcel = parcels[index];
+              return ParcelCard(parcel: parcel);
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class ParcelCard extends StatelessWidget {
+  final ParcelModel parcel;
+
+  const ParcelCard({required this.parcel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Locker: ${parcel.lockerNumber}',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            SizedBox(height: 8),
+            Text('Status: ${parcel.status.toUpperCase()}'),
+            Text('Delivery Time: ${_formatDate(parcel.deliveryTime)}'),
+            if (parcel.status == 'delivered') ...[
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => _showCollectDialog(context, parcel),
+                child: Text('Collect Parcel'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}';
+  }
+
+  void _showCollectDialog(BuildContext context, ParcelModel parcel) {
+    final otpController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Collect Parcel'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Enter OTP to collect parcel from Locker ${parcel.lockerNumber}'),
+            SizedBox(height: 16),
+            TextFormField(
+              controller: otpController,
+              decoration: InputDecoration(labelText: 'OTP'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final parcelService = Provider.of<ParcelService>(context, listen: false);
+              bool success = await parcelService.collectParcel(
+                parcel.id,
+                otpController.text.trim(),
+              );
+              
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Parcel collected successfully!')),
+                );
+                Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Invalid OTP')),
+                );
+              }
+            },
+            child: Text('Collect'),
+          ),
+        ],
+      ),
+    );
+  }
+}

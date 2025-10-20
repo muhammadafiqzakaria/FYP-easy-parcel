@@ -1,0 +1,25 @@
+name: easy_parcel_app
+description: "A smart parcel locker system for university villages"
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^2.32.0  # Keep your current version
+  firebase_auth: ^4.20.0  # Keep your current version  
+  cloud_firestore: ^4.17.5  # Keep your current version
+  http: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
