@@ -9,7 +9,7 @@ class ParcelModel {
   final DateTime deliveryTime;
   final DateTime? collectionTime;
   final String otp;
-  final String barcode;
+  final String barcode; // Add this field
 
   ParcelModel({
     required this.id,
@@ -22,7 +22,7 @@ class ParcelModel {
     required this.deliveryTime,
     this.collectionTime,
     required this.otp,
-    required this.barcode,
+    required this.barcode, // Add this
   });
 
   Map<String, dynamic> toMap() {
@@ -37,7 +37,7 @@ class ParcelModel {
       'deliveryTime': deliveryTime.millisecondsSinceEpoch,
       'collectionTime': collectionTime?.millisecondsSinceEpoch,
       'otp': otp,
-      'barcode': barcode,
+      'barcode': barcode, // Add this
     };
   }
 
@@ -51,11 +51,30 @@ class ParcelModel {
       lockerNumber: map['lockerNumber'] ?? '',
       status: map['status'] ?? '',
       deliveryTime: DateTime.fromMillisecondsSinceEpoch(map['deliveryTime']),
-      collectionTime: map['collectionTime'] != null 
+      collectionTime: map['collectionTime'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['collectionTime'])
           : null,
       otp: map['otp'] ?? '',
-      barcode: map['barcode'] ?? '',
+      barcode: map['barcode'] ?? '', // Add this
+    );
+  }
+
+  ParcelModel copyWith({
+    String? status,
+    DateTime? collectionTime,
+  }) {
+    return ParcelModel(
+      id: id,
+      studentId: studentId,
+      studentName: studentName,
+      courierId: courierId,
+      courierName: courierName,
+      lockerNumber: lockerNumber,
+      status: status ?? this.status,
+      deliveryTime: deliveryTime,
+      collectionTime: collectionTime ?? this.collectionTime,
+      otp: otp,
+      barcode: barcode,
     );
   }
 }

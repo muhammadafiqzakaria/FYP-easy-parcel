@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,8 +22,10 @@ class MyApp extends StatelessWidget {
       title: 'Easy Parcel',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        useMaterial3: true,
       ),
       home: const LoginScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -401,7 +404,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     });
   }
 
-  Future<void> _sendOTPToHardware(String otp, String lockerNumber) async {
+  Future<void> _sendOTPToHardware(
+      String otp, String lockerNumber, String parcelId) async {
     setState(() {
       _isSendingOTP = true;
     });
@@ -413,13 +417,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     });
 
     if (success) {
-      _showSuccessDialog(otp, lockerNumber);
+      _showSuccessDialog(otp, lockerNumber, parcelId); // Pass parcel ID
     } else {
       _showErrorDialog();
     }
   }
 
-  void _showSuccessDialog(String otp, String lockerNumber) {
+  void _showSuccessDialog(String otp, String lockerNumber, String parcelId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -466,7 +470,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'The locker is now waiting for this OTP',
+              'After collecting your parcel, scan the barcode',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
@@ -475,6 +479,22 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('OK'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              // Navigate to barcode scanner
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BarcodeScannerScreen(
+                    parcelId: parcelId,
+                    lockerNumber: lockerNumber,
+                  ),
+                ),
+              );
+            },
+            child: const Text('Scan Barcode'),
           ),
         ],
       ),
@@ -683,6 +703,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                                             ? () => _sendOTPToHardware(
                                                   parcel.otp,
                                                   parcel.lockerNumber,
+                                                  parcel.id,
                                                 )
                                             : null,
                                         style: ElevatedButton.styleFrom(
@@ -877,5 +898,144 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
         ),
       ),
     );
+  }
+}
+
+class BarcodeScannerScreen extends StatefulWidget {
+  final String parcelId;
+  final String lockerNumber;
+
+  const BarcodeScannerScreen({
+    super.key,
+    required this.parcelId,
+    required this.lockerNumber,
+  });
+
+  @override
+  State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
+}
+
+class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+  MobileScannerController cameraController = MobileScannerController();
+  bool _isScanning = true;
+  bool _hasScanned = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Scan Barcode'),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: _isScanning
+                ? MobileScanner(
+                    controller: cameraController,
+                    onDetect: (capture) {
+                      if (_hasScanned) return;
+
+                      final List<Barcode> barcodes = capture.barcodes;
+                      for (final barcode in barcodes) {
+                        if (barcode.rawValue != null) {
+                          _handleBarcodeScan(barcode.rawValue!);
+                        }
+                      }
+                    },
+                  )
+                : const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green, size: 64),
+                        SizedBox(height: 16),
+                        Text(
+                          'Parcel Collected Successfully!',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.black.withOpacity(0.8),
+            child: const Text(
+              'Scan the barcode on your parcel to confirm collection',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleBarcodeScan(String barcodeData) {
+    setState(() {
+      _hasScanned = true;
+      _isScanning = false;
+    });
+
+    // Stop the camera
+    cameraController.stop();
+
+    // Simulate barcode verification
+    _verifyBarcode(barcodeData);
+  }
+
+  void _verifyBarcode(String barcodeData) {
+    // In a real app, you would verify with your backend
+    // For now, we'll assume any scan is successful
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green),
+            SizedBox(width: 8),
+            Text('Parcel Collected!'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Parcel ID: ${widget.parcelId}'),
+            Text('Locker: ${widget.lockerNumber}'),
+            const SizedBox(height: 16),
+            const Text('Collection confirmed successfully.'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Go back to home screen
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+
+    // Update parcel status in mock database
+    final parcelIndex = MockDatabase.parcels.indexWhere(
+      (p) => p.id == widget.parcelId,
+    );
+
+    if (parcelIndex != -1) {
+      // In a real app, you'd update the status to 'collected'
+      setState(() {
+        // MockDatabase.parcels[parcelIndex] = parcel with updated status
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
   }
 }

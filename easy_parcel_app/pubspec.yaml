@@ -1,5 +1,5 @@
 name: easy_parcel_app
-description: "A smart parcel locker system for university villages"
+description: A Flutter parcel locker system with barcode scanning
 
 publish_to: 'none'
 
@@ -11,10 +11,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  firebase_core: ^2.32.0  # Keep your current version
-  firebase_auth: ^4.20.0  # Keep your current version  
-  cloud_firestore: ^4.17.5  # Keep your current version
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.20.0
+  cloud_firestore: ^4.17.5
   http: ^1.1.0
+  mobile_scanner: ^7.1.2
+  cupertino_icons: ^1.0.2
 
 dev_dependencies:
   flutter_test:
