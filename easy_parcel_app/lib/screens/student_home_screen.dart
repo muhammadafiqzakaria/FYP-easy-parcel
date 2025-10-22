@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/esp32_service.dart';
-import '../models/user_model.dart';
-import '../models/parcel_model.dart';
 import 'barcode_scanner_screen.dart';
+import '../services/esp32_service.dart';
+import '../utils/mock_database.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -32,8 +31,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   }
 
   void _loadStudentParcels() {
-    // In a real app, this would come from Firestore
-    // For now, using mock data that matches the current student
     final currentUser = MockDatabase.currentUser;
     if (currentUser != null) {
       setState(() {
@@ -68,7 +65,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     });
   }
 
-  Future<void> _sendOTPToHardware(String otp, String lockerNumber, String parcelId) async {
+  Future<void> _sendOTPToHardware(
+      String otp, String lockerNumber, String parcelId) async {
     setState(() {
       _isSendingOTP = true;
     });
@@ -146,8 +144,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
-              // Navigate to barcode scanner
+              Navigator.pop(context);
               _navigateToBarcodeScanner(parcelId, lockerNumber);
             },
             child: const Text('Scan Barcode'),
@@ -167,7 +164,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         ),
       ),
     ).then((_) {
-      // Refresh parcels when returning from barcode scanner
       _loadStudentParcels();
     });
   }
@@ -253,15 +249,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       appBar: AppBar(
         title: const Text('My Parcels'),
         actions: [
-          // Connection status indicator
           _buildConnectionStatusIndicator(),
-          // Refresh button
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _refreshParcels,
             tooltip: 'Refresh',
           ),
-          // Logout button
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _logout,
@@ -271,11 +264,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       ),
       body: Column(
         children: [
-          // Status indicator banner
           _buildStatusBanner(),
-          // Welcome message
           _buildWelcomeHeader(user),
-          // Parcels list
           Expanded(
             child: _studentParcels.isEmpty
                 ? _buildEmptyState()
@@ -323,9 +313,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 ),
           const SizedBox(width: 8),
           Text(
-            _lockerOnline
-                ? 'Locker System: ONLINE'
-                : 'Locker System: OFFLINE',
+            _lockerOnline ? 'Locker System: ONLINE' : 'Locker System: OFFLINE',
             style: TextStyle(
               color: _lockerOnline ? Colors.green : Colors.red,
               fontWeight: FontWeight.bold,
@@ -388,7 +376,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            _lockerOnline 
+            _lockerOnline
                 ? 'Check back later for new deliveries'
                 : 'Locker system is currently offline',
             style: const TextStyle(fontSize: 14, color: Colors.grey),
@@ -417,7 +405,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with locker info
             Row(
               children: [
                 const Icon(Icons.local_shipping, color: Colors.blue),
@@ -434,9 +421,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            // Parcel details
             _buildParcelDetails(parcel),
-            // Action button for delivered parcels
             if (parcel.status == 'delivered') ...[
               const SizedBox(height: 16),
               _buildActionButton(parcel),
@@ -450,7 +435,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   Widget _buildStatusBadge(String status) {
     final color = status == 'delivered' ? Colors.orange : Colors.green;
     final text = status == 'delivered' ? 'READY FOR PICKUP' : 'COLLECTED';
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -529,69 +514,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   }
 }
 
-// Mock Database (temporary - replace with actual Firestore implementation)
-class MockDatabase {
-  static final List<User> users = [
-    const User(
-      email: 'student@utp.edu.my',
-      name: 'Ali Ahmad',
-      role: 'student',
-      phoneNumber: '012-3456789',
-    ),
-    const User(
-      email: 'courier@utp.edu.my',
-      name: 'Courier Staff',
-      role: 'courier',
-      phoneNumber: '012-9876543',
-    ),
-  ];
-
-  static final List<Parcel> parcels = [
-    const Parcel(
-      id: '1',
-      studentName: 'Ali Ahmad',
-      lockerNumber: 'A101',
-      status: 'delivered',
-      otp: '123456',
-    ),
-    const Parcel(
-      id: '2',
-      studentName: 'Siti Sarah',
-      lockerNumber: 'B202',
-      status: 'delivered',
-      otp: '654321',
-    ),
-    const Parcel(
-      id: '3',
-      studentName: 'Ali Ahmad',
-      lockerNumber: 'C303',
-      status: 'collected',
-      otp: '789012',
-    ),
-  ];
-
-  static User? currentUser;
-
-  static String generateOTP() {
-    return (100000 + DateTime.now().millisecondsSinceEpoch % 900000).toString();
-  }
-}
-
-// Data Classes
-class User {
-  final String email;
-  final String name;
-  final String role;
-  final String phoneNumber;
-
-  const User({
-    required this.email,
-    required this.name,
-    required this.role,
-    required this.phoneNumber,
-  });
-}
-
+// Add Parcel class here since it's used in this file
 class Parcel {
   final String id;
   final String studentName;
@@ -606,17 +529,4 @@ class Parcel {
     required this.status,
     required this.otp,
   });
-}
-
-// Import for LoginScreen (make sure this exists)
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: const Center(child: Text('Login Screen')),
-    );
-  }
 }

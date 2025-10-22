@@ -6,30 +6,20 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<UserModel?> signIn(String email, String password) async {
+  Future<User?> signIn(String email, String password) async {
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      User? user = result.user;
-      
-      if (user != null) {
-        DocumentSnapshot userDoc = await _firestore
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        
-        return UserModel.fromMap(userDoc.data() as Map<String, dynamic>);
-      }
-      return null;
+      return result.user;
     } catch (e) {
       print('Sign in error: $e');
       return null;
     }
   }
 
-  Future<UserModel?> signUp(
+  Future<User?> signUp(
     String email,
     String password,
     String name,
@@ -42,21 +32,22 @@ class AuthService {
         password: password,
       );
       User? user = result.user;
-      
+
       if (user != null) {
-        UserModel newUser = UserModel(
-          uid: user.uid,
+        User newUser = User(
           email: email,
           name: name,
           role: role,
           phoneNumber: phoneNumber,
         );
-        
-        await _firestore
-            .collection('users')
-            .doc(user.uid)
-            .set(newUser.toMap());
-        
+
+        await _firestore.collection('users').doc(user.uid).set({
+          'email': email,
+          'name': name,
+          'role': role,
+          'phoneNumber': phoneNumber,
+        });
+
         return newUser;
       }
       return null;
@@ -70,16 +61,20 @@ class AuthService {
     await _auth.signOut();
   }
 
-  Stream<UserModel?> get currentUser {
+  Stream<User?> get currentUser {
     return _auth.authStateChanges().asyncMap((User? user) async {
       if (user != null) {
-        DocumentSnapshot userDoc = await _firestore
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        
+        DocumentSnapshot userDoc =
+            await _firestore.collection('users').doc(user.uid).get();
+
         if (userDoc.exists) {
-          return UserModel.fromMap(userDoc.data() as Map<String, dynamic>);
+          final data = userDoc.data() as Map<String, dynamic>;
+          return User(
+            email: data['email'] ?? '',
+            name: data['name'] ?? '',
+            role: data['role'] ?? '',
+            phoneNumber: data['phoneNumber'] ?? '',
+          );
         }
       }
       return null;

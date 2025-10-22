@@ -2,19 +2,21 @@ class ParcelModel {
   final String id;
   final String studentId;
   final String studentName;
+  final String studentEmail;
   final String courierId;
   final String courierName;
   final String lockerNumber;
-  final String status; // 'pending', 'delivered', 'collected'
+  final String status;
   final DateTime deliveryTime;
   final DateTime? collectionTime;
   final String otp;
-  final String barcode; // Add this field
+  final String barcode;
 
   ParcelModel({
     required this.id,
     required this.studentId,
     required this.studentName,
+    required this.studentEmail,
     required this.courierId,
     required this.courierName,
     required this.lockerNumber,
@@ -22,7 +24,7 @@ class ParcelModel {
     required this.deliveryTime,
     this.collectionTime,
     required this.otp,
-    required this.barcode, // Add this
+    required this.barcode,
   });
 
   Map<String, dynamic> toMap() {
@@ -30,6 +32,7 @@ class ParcelModel {
       'id': id,
       'studentId': studentId,
       'studentName': studentName,
+      'studentEmail': studentEmail,
       'courierId': courierId,
       'courierName': courierName,
       'lockerNumber': lockerNumber,
@@ -37,7 +40,7 @@ class ParcelModel {
       'deliveryTime': deliveryTime.millisecondsSinceEpoch,
       'collectionTime': collectionTime?.millisecondsSinceEpoch,
       'otp': otp,
-      'barcode': barcode, // Add this
+      'barcode': barcode,
     };
   }
 
@@ -46,6 +49,7 @@ class ParcelModel {
       id: map['id'] ?? '',
       studentId: map['studentId'] ?? '',
       studentName: map['studentName'] ?? '',
+      studentEmail: map['studentEmail'] ?? '',
       courierId: map['courierId'] ?? '',
       courierName: map['courierName'] ?? '',
       lockerNumber: map['lockerNumber'] ?? '',
@@ -55,26 +59,7 @@ class ParcelModel {
           ? DateTime.fromMillisecondsSinceEpoch(map['collectionTime'])
           : null,
       otp: map['otp'] ?? '',
-      barcode: map['barcode'] ?? '', // Add this
-    );
-  }
-
-  ParcelModel copyWith({
-    String? status,
-    DateTime? collectionTime,
-  }) {
-    return ParcelModel(
-      id: id,
-      studentId: studentId,
-      studentName: studentName,
-      courierId: courierId,
-      courierName: courierName,
-      lockerNumber: lockerNumber,
-      status: status ?? this.status,
-      deliveryTime: deliveryTime,
-      collectionTime: collectionTime ?? this.collectionTime,
-      otp: otp,
-      barcode: barcode,
+      barcode: map['barcode'] ?? '',
     );
   }
 }

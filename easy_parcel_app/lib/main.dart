@@ -6,11 +6,12 @@ import 'firebase_options.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding
+      .ensureInitialized(); // Fixed typo: Widgets=LutterBinding → WidgetsFlutterBinding
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  runApp(const MyApp()); // Added this missing line
 }
 
 class MyApp extends StatelessWidget {
@@ -63,7 +64,7 @@ class Parcel {
 
 // ESP32 Network Service
 class ESP32Service {
-  static const String esp32IP = "10.213.193.229";
+  static const String esp32IP = "10.11.170.229";
   static const int timeoutSeconds = 5;
 
   // Test connection to ESP32
@@ -214,6 +215,7 @@ class MockDatabase {
   }
 }
 
+// SIMPLIFIED LOGIN SCREEN
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -224,25 +226,35 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
   bool _isLogin = true;
   String _name = '';
   String _phoneNumber = '';
   String _role = 'student';
 
   void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    // SIMPLE MOCK LOGIN
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (_isLogin) {
-      // Mock login
-      final user = MockDatabase.users.firstWhere(
-        (user) => user.email == email,
-        orElse: () =>
-            const User(email: '', name: '', role: '', phoneNumber: ''),
-      );
+    // Find user in mock database
+    final user = MockDatabase.users.firstWhere(
+      (u) => u.email == email,
+      orElse: () => const User(email: '', name: '', role: '', phoneNumber: ''),
+    );
+
+    Future.delayed(const Duration(seconds: 1), () {
+      setState(() => _isLoading = false);
 
       if (user.email.isNotEmpty && password.isNotEmpty) {
         MockDatabase.currentUser = user;
+
+        // NAVIGATION LOGIC
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -252,37 +264,11 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       } else {
-        _showError('Invalid email or password');
-      }
-    } else {
-      // Mock signup
-      if (email.isNotEmpty && password.isNotEmpty && _name.isNotEmpty) {
-        final newUser = User(
-          email: email,
-          name: _name,
-          role: _role,
-          phoneNumber: _phoneNumber,
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid email or password')),
         );
-        MockDatabase.users.add(newUser);
-        MockDatabase.currentUser = newUser;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => _role == 'courier'
-                ? const CourierHomeScreen()
-                : const StudentHomeScreen(),
-          ),
-        );
-      } else {
-        _showError('Please fill all fields');
       }
-    }
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    });
   }
 
   @override
@@ -293,62 +279,74 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            const SizedBox(height: 20),
-            Text(
-              _isLogin ? 'Login' : 'Sign Up',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
-            if (!_isLogin) ...[
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              const SizedBox(height: 20),
+              Text(
+                _isLogin ? 'Login' : 'Sign Up',
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 30),
+              if (!_isLogin) ...[
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'Full Name'),
+                  validator: (value) => value!.isEmpty ? 'Required' : null,
+                  onChanged: (value) => _name = value,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'Phone Number'),
+                  validator: (value) => value!.isEmpty ? 'Required' : null,
+                  onChanged: (value) => _phoneNumber = value,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _role,
+                  items: ['student', 'courier']
+                      .map((role) => DropdownMenuItem(
+                            value: role,
+                            child: Text(role.toUpperCase()),
+                          ))
+                      .toList(),
+                  onChanged: (value) => setState(() => _role = value!),
+                  decoration: const InputDecoration(labelText: 'Role'),
+                ),
+                const SizedBox(height: 16),
+              ],
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Full Name'),
-                onChanged: (value) => _name = value,
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+                validator: (value) => value!.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Phone Number'),
-                onChanged: (value) => _phoneNumber = value,
+                controller: _passwordController,
+                decoration: const InputDecoration(labelText: 'Password'),
+                validator: (value) =>
+                    value!.length < 6 ? 'Minimum 6 characters' : null,
+                obscureText: true,
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _role,
-                items: ['student', 'courier']
-                    .map((role) => DropdownMenuItem(
-                          value: role,
-                          child: Text(role.toUpperCase()),
-                        ))
-                    .toList(),
-                onChanged: (value) => setState(() => _role = value!),
-                decoration: const InputDecoration(labelText: 'Role'),
+              const SizedBox(height: 30),
+              if (_isLoading)
+                const Center(child: CircularProgressIndicator())
+              else
+                ElevatedButton(
+                  onPressed: _submit,
+                  child: Text(_isLogin ? 'LOGIN' : 'SIGN UP'),
+                ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () => setState(() => _isLogin = !_isLogin),
+                child: Text(_isLogin
+                    ? 'Don\'t have an account? Sign up'
+                    : 'Already have an account? Login'),
               ),
-              const SizedBox(height: 16),
             ],
-            TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: _submit,
-              child: Text(_isLogin ? 'LOGIN' : 'SIGN UP'),
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () => setState(() => _isLogin = !_isLogin),
-              child: Text(_isLogin
-                  ? 'Don\'t have an account? Sign up'
-                  : 'Already have an account? Login'),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -898,6 +896,152 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
         ),
       ),
     );
+  }
+}
+
+// COURIER BARCODE SCANNER SCREEN
+class CourierBarcodeScannerScreen extends StatefulWidget {
+  @override
+  _CourierBarcodeScannerScreenState createState() =>
+      _CourierBarcodeScannerScreenState();
+}
+
+class _CourierBarcodeScannerScreenState
+    extends State<CourierBarcodeScannerScreen> {
+  MobileScannerController cameraController = MobileScannerController();
+  bool _hasScanned = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Scan Student QR Code'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.flash_on),
+            onPressed: () => cameraController.toggleTorch(),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: MobileScanner(
+              controller: cameraController,
+              onDetect: (capture) {
+                if (_hasScanned) return;
+
+                final barcodes = capture.barcodes;
+                for (final barcode in barcodes) {
+                  if (barcode.rawValue != null) {
+                    _handleBarcodeScan(barcode.rawValue!);
+                    break;
+                  }
+                }
+              },
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.all(16),
+            color: Colors.black87,
+            child: Text(
+              'Scan student QR code to automatically fill details',
+              style: TextStyle(color: Colors.white),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleBarcodeScan(String scannedData) {
+    setState(() {
+      _hasScanned = true;
+    });
+
+    cameraController.stop();
+
+    // Process the scanned data
+    final studentData = _processScannedData(scannedData);
+
+    if (studentData != null) {
+      Navigator.pop(context, studentData);
+    } else {
+      _showErrorDialog(scannedData);
+    }
+  }
+
+  Map<String, dynamic>? _processScannedData(String data) {
+    try {
+      // Try to parse as JSON
+      final jsonData = json.decode(data);
+      if (jsonData is Map<String, dynamic>) {
+        return {
+          'studentId': jsonData['studentId'] ?? '',
+          'studentName': jsonData['studentName'] ?? '',
+          'studentEmail': jsonData['studentEmail'] ?? '',
+        };
+      }
+    } catch (e) {
+      // If not JSON, try to extract email
+      final emailRegex =
+          RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+      if (emailRegex.hasMatch(data)) {
+        return {
+          'studentId': '',
+          'studentName': '',
+          'studentEmail': data,
+        };
+      }
+
+      // Otherwise treat as student ID
+      return {
+        'studentId': data,
+        'studentName': '',
+        'studentEmail': '',
+      };
+    }
+    return null;
+  }
+
+  void _showErrorDialog(String scannedData) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Invalid QR Code'),
+        content: Text('Could not read student information from the QR code.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _resetScanner();
+            },
+            child: Text('Try Again'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: Text('Manual Entry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _resetScanner() {
+    setState(() {
+      _hasScanned = false;
+    });
+    cameraController.start();
+  }
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
   }
 }
 

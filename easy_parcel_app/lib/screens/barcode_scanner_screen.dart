@@ -72,17 +72,15 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                     for (final barcode in barcodes) {
                       if (barcode.rawValue != null) {
                         _handleBarcodeScan(barcode.rawValue!);
-                        break; // Process only first barcode
+                        break;
                       }
                     }
                   },
                 ),
-                // Scanner overlay
                 _buildScannerOverlay(),
               ],
             ),
           ),
-          // Bottom info panel
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.black87,
@@ -129,10 +127,8 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       _isProcessing = true;
     });
 
-    // Stop the camera
     cameraController.stop();
 
-    // Verify barcode and update parcel status
     final success = await _verifyAndUpdateParcel(scannedBarcode);
 
     setState(() {
@@ -148,11 +144,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
 
   Future<bool> _verifyAndUpdateParcel(String scannedBarcode) async {
     try {
-      // Simulate API call delay
       await Future.delayed(const Duration(seconds: 1));
-      
-      // In real app, you'd verify against your backend
-      // For now, accept any non-empty barcode
       return scannedBarcode.isNotEmpty;
     } catch (e) {
       print('Error verifying barcode: $e');
@@ -177,7 +169,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           children: [
             const Icon(Icons.qr_code_scanner, size: 48, color: Colors.green),
             const SizedBox(height: 16),
-            Text('Barcode: $barcode', 
+            Text('Barcode: $barcode',
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text('Locker: ${widget.lockerNumber}'),
@@ -192,8 +184,8 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to home screen
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
             child: const Text('Done'),
           ),
@@ -218,7 +210,8 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           children: [
             const Text('There was an issue processing the barcode.'),
             const SizedBox(height: 16),
-            Text('Scanned: $barcode', style: const TextStyle(fontFamily: 'Monospace')),
+            Text('Scanned: $barcode',
+                style: const TextStyle(fontFamily: 'Monospace')),
           ],
         ),
         actions: [
@@ -249,7 +242,6 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   }
 }
 
-// Custom scanner overlay widget
 class CustomScannerOverlay extends StatelessWidget {
   final String lockerNumber;
   final bool isProcessing;
@@ -264,7 +256,6 @@ class CustomScannerOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Semi-transparent background
         ColorFiltered(
           colorFilter: ColorFilter.mode(
             Colors.black.withOpacity(0.5),
@@ -278,7 +269,6 @@ class CustomScannerOverlay extends StatelessWidget {
                   backgroundBlendMode: BlendMode.dstOut,
                 ),
               ),
-              // Transparent scanning area
               Center(
                 child: Container(
                   width: 250,
@@ -292,7 +282,6 @@ class CustomScannerOverlay extends StatelessWidget {
             ],
           ),
         ),
-        // Processing indicator
         if (isProcessing)
           const Center(
             child: Column(
@@ -313,7 +302,6 @@ class CustomScannerOverlay extends StatelessWidget {
               ],
             ),
           ),
-        // Instructions
         if (!isProcessing) ...[
           Positioned(
             top: 100,
@@ -337,7 +325,6 @@ class CustomScannerOverlay extends StatelessWidget {
               ],
             ),
           ),
-          // Bottom instructions
           Positioned(
             bottom: 120,
             left: 0,

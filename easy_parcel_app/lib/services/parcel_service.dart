@@ -4,7 +4,7 @@ import '../models/parcel_model.dart';
 class ParcelService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Generate random barcode (in real app, this would come from your system)
+  // Generate random barcode
   String generateBarcode() {
     return 'BC${DateTime.now().millisecondsSinceEpoch}';
   }
@@ -18,6 +18,7 @@ class ParcelService {
   Future<ParcelModel?> createParcel({
     required String studentId,
     required String studentName,
+    required String studentEmail,
     required String courierId,
     required String courierName,
     required String lockerNumber,
@@ -27,6 +28,7 @@ class ParcelService {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         studentId: studentId,
         studentName: studentName,
+        studentEmail: studentEmail,
         courierId: courierId,
         courierName: courierName,
         lockerNumber: lockerNumber,
