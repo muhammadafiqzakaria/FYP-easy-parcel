@@ -19,6 +19,8 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   MobileScannerController cameraController = MobileScannerController();
   bool _hasScanned = false;
   bool _isProcessing = false;
+  bool _torchEnabled = false;
+  CameraFacing _cameraFacing = CameraFacing.back;
 
   @override
   Widget build(BuildContext context) {
@@ -26,35 +28,29 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       appBar: AppBar(
         title: const Text('Scan Parcel Barcode'),
         actions: [
+          // Simple torch toggle button
           IconButton(
-            color: Colors.white,
-            icon: ValueListenableBuilder(
-              valueListenable: cameraController.torchState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case TorchState.off:
-                    return const Icon(Icons.flash_off);
-                  case TorchState.on:
-                    return const Icon(Icons.flash_on);
-                }
-              },
-            ),
-            onPressed: () => cameraController.toggleTorch(),
+            icon: Icon(_torchEnabled ? Icons.flash_on : Icons.flash_off),
+            onPressed: () {
+              setState(() {
+                _torchEnabled = !_torchEnabled;
+              });
+              cameraController.toggleTorch();
+            },
           ),
+          // Simple camera switch button
           IconButton(
-            color: Colors.white,
-            icon: ValueListenableBuilder(
-              valueListenable: cameraController.cameraFacingState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case CameraFacing.front:
-                    return const Icon(Icons.camera_front);
-                  case CameraFacing.back:
-                    return const Icon(Icons.camera_rear);
-                }
-              },
-            ),
-            onPressed: () => cameraController.switchCamera(),
+            icon: Icon(_cameraFacing == CameraFacing.back
+                ? Icons.camera_rear
+                : Icons.camera_front),
+            onPressed: () {
+              setState(() {
+                _cameraFacing = _cameraFacing == CameraFacing.back
+                    ? CameraFacing.front
+                    : CameraFacing.back;
+              });
+              cameraController.switchCamera();
+            },
           ),
         ],
       ),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'courier_barcode_scanner_screen.dart';
 import '../models/parcel_model.dart';
-import '../services/parcel_service.dart';
 import '../utils/mock_database.dart';
+import 'login_screen.dart';
 
 class CourierHomeScreen extends StatefulWidget {
   const CourierHomeScreen({super.key});
@@ -38,12 +38,11 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
     );
 
     if (result != null && result is Map<String, dynamic>) {
-      // Populate fields with scanned data
       setState(() {
         _studentIdController.text = result['studentId'] ?? '';
         _studentNameController.text = result['studentName'] ?? '';
         _studentEmailController.text = result['studentEmail'] ?? '';
-        _showManualForm = true;
+        _showManualForm = true; // Show form after scanning
       });
     }
   }
@@ -67,7 +66,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
   void _deliverParcel() {
     if (_lockerNumberController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter locker number')),
+        const SnackBar(content: Text('Please enter locker number')),
       );
       return;
     }
@@ -75,7 +74,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
     if (_studentIdController.text.isEmpty &&
         _studentEmailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please provide student ID or email')),
+        const SnackBar(content: Text('Please provide student ID or email')),
       );
       return;
     }
@@ -84,7 +83,6 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
       _isLoading = true;
     });
 
-    // For now, using mock data - replace with actual ParcelService call
     final newParcel = ParcelModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       studentId: _studentIdController.text,
@@ -92,7 +90,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
           ? _studentNameController.text
           : 'Student ${_studentIdController.text}',
       studentEmail: _studentEmailController.text,
-      courierId: 'courier_123', // Mock courier ID
+      courierId: 'courier_123',
       courierName: 'Courier Staff',
       lockerNumber: _lockerNumberController.text,
       status: 'delivered',
@@ -101,7 +99,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
       barcode: 'BC${DateTime.now().millisecondsSinceEpoch}',
     );
 
-    Future.delayed(Duration(seconds: 1), () {
+    Future.delayed(const Duration(seconds: 1), () {
       setState(() {
         _isLoading = false;
       });
@@ -116,7 +114,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Row(
+        title: const Row(
           children: [
             Icon(Icons.check_circle, color: Colors.green),
             SizedBox(width: 8),
@@ -126,41 +124,42 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.local_shipping, size: 48, color: Colors.green),
-            SizedBox(height: 16),
-            Text('Parcel delivered successfully!', textAlign: TextAlign.center),
-            SizedBox(height: 16),
+            const Icon(Icons.local_shipping, size: 48, color: Colors.green),
+            const SizedBox(height: 16),
+            const Text('Parcel delivered successfully!',
+                textAlign: TextAlign.center),
+            const SizedBox(height: 16),
             Container(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.green[50],
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
                 children: [
-                  Text(
+                  const Text(
                     'Student OTP:',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     parcel.otp,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
                     'Locker: ${parcel.lockerNumber}',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 16),
+            const Text(
               'Student can collect the parcel using this OTP',
               style: TextStyle(fontSize: 12, color: Colors.grey),
               textAlign: TextAlign.center,
@@ -172,7 +171,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
             onPressed: () {
               Navigator.pop(context);
             },
-            child: Text('OK'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -183,7 +182,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
     MockDatabase.currentUser = null;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) => LoginScreen()),
     );
   }
 
@@ -193,14 +192,14 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Courier Dashboard'),
+          title: const Text('Courier Dashboard'),
           actions: [
             IconButton(
-              icon: Icon(Icons.logout),
+              icon: const Icon(Icons.logout),
               onPressed: _logout,
             ),
           ],
-          bottom: TabBar(
+          bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.add), text: 'Deliver'),
               Tab(icon: Icon(Icons.history), text: 'History'),
@@ -209,154 +208,149 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
         ),
         body: TabBarView(
           children: [
-            // Deliver Tab with Barcode Scanner
+            // Deliver Tab with Barcode Scanner - USING SINGLE CHILD SCROLL VIEW
             Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Scan Barcode Section
-                  Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Icon(Icons.qr_code_scanner,
-                              size: 64, color: Colors.blue),
-                          SizedBox(height: 16),
-                          Text(
-                            'Scan Student Barcode',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Scan the student\'s QR code to automatically fill their details',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          SizedBox(height: 20),
-                          ElevatedButton.icon(
-                            onPressed: () => _startBarcodeScan(context),
-                            icon: Icon(Icons.qr_code_scanner),
-                            label: Text('Scan Barcode'),
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(
-                                  vertical: 15, horizontal: 30),
-                            ),
-                          ),
-                          SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(child: Divider()),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8),
-                                child: Text('OR'),
-                              ),
-                              Expanded(child: Divider()),
-                            ],
-                          ),
-                          SizedBox(height: 16),
-                          OutlinedButton.icon(
-                            onPressed: _toggleManualForm,
-                            icon: Icon(Icons.keyboard),
-                            label: Text(_showManualForm
-                                ? 'Hide Manual Entry'
-                                : 'Enter Details Manually'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Manual Form Section
-                  if (_showManualForm) ...[
-                    SizedBox(height: 20),
+              padding: const EdgeInsets.all(16),
+              child: SingleChildScrollView(
+                // Added this to fix overflow
+                child: Column(
+                  children: [
+                    // Scan Barcode Section
                     Card(
                       child: Padding(
-                        padding: EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(16),
                         child: Column(
                           children: [
-                            Text(
-                              'Manual Student Details',
+                            const Icon(Icons.qr_code_scanner,
+                                size: 64, color: Colors.blue),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Scan Student Barcode',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 16),
-                            TextFormField(
-                              controller: _studentIdController,
-                              decoration: InputDecoration(
-                                labelText: 'Student ID',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.badge),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Scan the student\'s QR code to automatically fill their details',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              onPressed: () => _startBarcodeScan(context),
+                              icon: const Icon(Icons.qr_code_scanner),
+                              label: const Text('Scan Barcode'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 15, horizontal: 30),
                               ),
                             ),
-                            SizedBox(height: 16),
-                            TextFormField(
-                              controller: _studentNameController,
-                              decoration: InputDecoration(
-                                labelText: 'Student Name',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.person),
-                              ),
+                            const SizedBox(height: 16),
+                            const Row(
+                              children: [
+                                Expanded(child: Divider()),
+                                Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 8),
+                                  child: Text('OR'),
+                                ),
+                                Expanded(child: Divider()),
+                              ],
                             ),
-                            SizedBox(height: 16),
-                            TextFormField(
-                              controller: _studentEmailController,
-                              decoration: InputDecoration(
-                                labelText: 'Student Email',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.email),
-                              ),
-                              keyboardType: TextInputType.emailAddress,
+                            const SizedBox(height: 16),
+                            OutlinedButton.icon(
+                              onPressed: _toggleManualForm,
+                              icon: const Icon(Icons.keyboard),
+                              label: Text(_showManualForm
+                                  ? 'Hide Manual Entry'
+                                  : 'Enter Details Manually'),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ],
 
-                  // Locker Number Section
-                  SizedBox(height: 20),
-                  Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _lockerNumberController,
-                            decoration: InputDecoration(
-                              labelText: 'Locker Number',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.lock),
-                              hintText: 'e.g., A101, B202',
-                            ),
-                          ),
-                          SizedBox(height: 20),
-                          _isLoading
-                              ? Center(child: CircularProgressIndicator())
-                              : ElevatedButton.icon(
-                                  onPressed: _deliverParcel,
-                                  icon: Icon(Icons.local_shipping),
-                                  label: Text('Deliver Parcel'),
-                                  style: ElevatedButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(vertical: 15),
-                                    minimumSize: Size(double.infinity, 50),
-                                  ),
+                    // SINGLE FORM SECTION - Shows for both barcode scan and manual entry
+                    if (_showManualForm) ...[
+                      const SizedBox(height: 20),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Parcel Delivery Details',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                        ],
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _studentIdController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Student ID',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.badge),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _studentNameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Student Name',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.person),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _studentEmailController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Student Email',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.email),
+                                ),
+                                keyboardType: TextInputType.emailAddress,
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _lockerNumberController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Locker Number',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.lock),
+                                  hintText: 'e.g., A101, B202',
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              _isLoading
+                                  ? const Center(
+                                      child: CircularProgressIndicator())
+                                  : ElevatedButton.icon(
+                                      onPressed: _deliverParcel,
+                                      icon: const Icon(Icons.local_shipping),
+                                      label: const Text('Deliver Parcel'),
+                                      style: ElevatedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 15),
+                                        minimumSize:
+                                            const Size(double.infinity, 50),
+                                      ),
+                                    ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  ],
+                ),
               ),
             ),
 
-            // History Tab (empty for now)
-            Center(
+            // History Tab
+            const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

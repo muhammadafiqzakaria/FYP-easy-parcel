@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'barcode_scanner_screen.dart';
 import '../services/esp32_service.dart';
 import '../utils/mock_database.dart';
+import 'login_screen.dart';
+import '../models/user_model.dart';
+import '../models/parcel_model.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -14,7 +17,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   bool _isSendingOTP = false;
   bool _lockerOnline = false;
   bool _checkingStatus = false;
-  List<Parcel> _studentParcels = [];
+  List<ParcelModel> _studentParcels = [];
 
   @override
   void initState() {
@@ -37,6 +40,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         _studentParcels = MockDatabase.parcels
             .where((p) => p.studentName == currentUser.name)
             .toList();
+      });
+    } else {
+      setState(() {
+        _studentParcels = [];
       });
     }
   }
@@ -229,7 +236,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     MockDatabase.currentUser = null;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) => LoginScreen()),
     );
   }
 
@@ -275,6 +282,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       ),
     );
   }
+
+  // ADD THESE MISSING METHODS:
 
   Widget _buildConnectionStatusIndicator() {
     return IconButton(
@@ -397,7 +406,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  Widget _buildParcelCard(Parcel parcel) {
+  Widget _buildParcelCard(ParcelModel parcel) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
@@ -417,7 +426,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   ),
                 ),
                 const Spacer(),
-                _buildStatusBadge(parcel.status),
+                _buildStatusBadge(parcel.status), // This method was missing
               ],
             ),
             const SizedBox(height: 12),
@@ -432,6 +441,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
+  // ADD THIS MISSING METHOD:
   Widget _buildStatusBadge(String status) {
     final color = status == 'delivered' ? Colors.orange : Colors.green;
     final text = status == 'delivered' ? 'READY FOR PICKUP' : 'COLLECTED';
@@ -454,7 +464,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  Widget _buildParcelDetails(Parcel parcel) {
+  Widget _buildParcelDetails(ParcelModel parcel) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -488,7 +498,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  Widget _buildActionButton(Parcel parcel) {
+  Widget _buildActionButton(ParcelModel parcel) {
     return _isSendingOTP
         ? const Center(child: CircularProgressIndicator())
         : ElevatedButton.icon(
@@ -512,21 +522,4 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ),
           );
   }
-}
-
-// Add Parcel class here since it's used in this file
-class Parcel {
-  final String id;
-  final String studentName;
-  final String lockerNumber;
-  final String status;
-  final String otp;
-
-  const Parcel({
-    required this.id,
-    required this.studentName,
-    required this.lockerNumber,
-    required this.status,
-    required this.otp,
-  });
 }
