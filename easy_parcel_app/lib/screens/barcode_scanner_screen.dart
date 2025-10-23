@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../services/supabase_service.dart';
 
 class BarcodeScannerScreen extends StatefulWidget {
   final String parcelId;
@@ -22,13 +23,15 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   bool _torchEnabled = false;
   CameraFacing _cameraFacing = CameraFacing.back;
 
+  final SupabaseService _supabaseService =
+      SupabaseService(); // Use SupabaseService
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scan Parcel Barcode'),
         actions: [
-          // Simple torch toggle button
           IconButton(
             icon: Icon(_torchEnabled ? Icons.flash_on : Icons.flash_off),
             onPressed: () {
@@ -38,7 +41,6 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
               cameraController.toggleTorch();
             },
           ),
-          // Simple camera switch button
           IconButton(
             icon: Icon(_cameraFacing == CameraFacing.back
                 ? Icons.camera_rear
@@ -140,8 +142,11 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
 
   Future<bool> _verifyAndUpdateParcel(String scannedBarcode) async {
     try {
-      await Future.delayed(const Duration(seconds: 1));
-      return scannedBarcode.isNotEmpty;
+      return await _supabaseService.verifyBarcodeAndCollect(
+        // Use SupabaseService
+        widget.parcelId,
+        scannedBarcode,
+      );
     } catch (e) {
       print('Error verifying barcode: $e');
       return false;
@@ -181,7 +186,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pop(context);
+              Navigator.pop(context, true);
             },
             child: const Text('Done'),
           ),
@@ -208,6 +213,12 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
             const SizedBox(height: 16),
             Text('Scanned: $barcode',
                 style: const TextStyle(fontFamily: 'Monospace')),
+            const SizedBox(height: 8),
+            const Text(
+              'Please make sure you are scanning the correct barcode for this parcel.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12),
+            ),
           ],
         ),
         actions: [

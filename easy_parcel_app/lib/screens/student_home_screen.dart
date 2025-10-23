@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'barcode_scanner_screen.dart';
 import '../services/esp32_service.dart';
-import '../utils/mock_database.dart';
 import 'login_screen.dart';
 import '../models/user_model.dart';
 import '../models/parcel_model.dart';
+import '../services/supabase_service.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -18,6 +18,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   bool _lockerOnline = false;
   bool _checkingStatus = false;
   List<ParcelModel> _studentParcels = [];
+
+  late final SupabaseService _supabaseService;
 
   @override
   void initState() {
@@ -34,18 +36,30 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   }
 
   void _loadStudentParcels() {
-    final currentUser = MockDatabase.currentUser;
+    final currentUser = _supabaseService.currentUser;
     if (currentUser != null) {
-      setState(() {
-        _studentParcels = MockDatabase.parcels
-            .where((p) => p.studentName == currentUser.name)
-            .toList();
+      _supabaseService
+          .getParcelsForStudent(currentUser.email)
+          .listen((parcels) {
+        if (mounted) {
+          setState(() {
+            _studentParcels = parcels;
+          });
+        }
       });
     } else {
       setState(() {
         _studentParcels = [];
       });
     }
+  }
+
+  void _logout() {
+    _supabaseService.signOut();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
   }
 
   void _startPeriodicStatusCheck() {
@@ -66,10 +80,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
     final online = await ESP32Service.checkLockerStatus();
 
-    setState(() {
-      _lockerOnline = online;
-      _checkingStatus = false;
-    });
+    if (mounted) {
+      setState(() {
+        _lockerOnline = online;
+        _checkingStatus = false;
+      });
+    }
   }
 
   Future<void> _sendOTPToHardware(
@@ -171,7 +187,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         ),
       ),
     ).then((_) {
-      _loadStudentParcels();
+      _loadStudentParcels(); // Refresh the list after returning
     });
   }
 
@@ -232,14 +248,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  void _logout() {
-    MockDatabase.currentUser = null;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );
-  }
-
   void _refreshParcels() {
     _loadStudentParcels();
     _checkLockerStatus();
@@ -250,7 +258,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = MockDatabase.currentUser;
+    final user = _supabaseService.currentUser;
 
     return Scaffold(
       appBar: AppBar(
@@ -282,8 +290,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       ),
     );
   }
-
-  // ADD THESE MISSING METHODS:
 
   Widget _buildConnectionStatusIndicator() {
     return IconButton(
@@ -426,7 +432,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   ),
                 ),
                 const Spacer(),
-                _buildStatusBadge(parcel.status), // This method was missing
+                _buildStatusBadge(parcel.status),
               ],
             ),
             const SizedBox(height: 12),
@@ -441,7 +447,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     );
   }
 
-  // ADD THIS MISSING METHOD:
   Widget _buildStatusBadge(String status) {
     final color = status == 'delivered' ? Colors.orange : Colors.green;
     final text = status == 'delivered' ? 'READY FOR PICKUP' : 'COLLECTED';

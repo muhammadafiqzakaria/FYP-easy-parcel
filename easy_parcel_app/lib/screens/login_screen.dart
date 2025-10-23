@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'courier_home_screen.dart';
 import 'student_home_screen.dart';
+import '../services/supabase_service.dart';
 import '../models/user_model.dart';
-//import '../services/auth_service.dart';
-import '../utils/mock_database.dart';
 
 class LoginScreen extends StatefulWidget {
-  LoginScreen({super.key});
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -15,35 +14,53 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
+  late final SupabaseService _supabaseService;
+
   bool _isLoading = false;
   bool _isLogin = true;
-  String _role = 'student'; // Keep only the fields you actually use
+  String _role = 'student';
 
-  void _submit() {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize your service here.
+    _supabaseService = SupabaseService();
+  }
+
+  void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+    try {
+      User? user;
 
-    final user = MockDatabase.users.firstWhere(
-      (u) => u.email == email,
-      orElse: () =>
-          const User(uid: '', email: '', name: '', role: '', phoneNumber: ''),
-    );
+      if (_isLogin) {
+        user = await _supabaseService.signIn(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+      } else {
+        user = await _supabaseService.signUp(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+          name: _nameController.text.trim(),
+          role: _role,
+          phoneNumber: _phoneController.text.trim(),
+        );
+      }
 
-    Future.delayed(const Duration(seconds: 1), () {
       setState(() => _isLoading = false);
 
-      if (user.email.isNotEmpty && password.isNotEmpty) {
-        MockDatabase.currentUser = user;
-
+      if (user != null) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => user.role == 'courier'
+            builder: (context) => user!.role == 'courier'
                 ? const CourierHomeScreen()
                 : const StudentHomeScreen(),
           ),
@@ -53,7 +70,12 @@ class _LoginScreenState extends State<LoginScreen> {
           const SnackBar(content: Text('Invalid email or password')),
         );
       }
-    });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 
   @override
@@ -71,22 +93,24 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
               Text(
                 _isLogin ? 'Login' : 'Sign Up',
-                style:
-                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 30),
               if (!_isLogin) ...[
                 TextFormField(
+                  controller: _nameController,
                   decoration: const InputDecoration(labelText: 'Full Name'),
                   validator: (value) => value!.isEmpty ? 'Required' : null,
-                  // Removed onChanged since we're not using the value
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
+                  controller: _phoneController,
                   decoration: const InputDecoration(labelText: 'Phone Number'),
                   validator: (value) => value!.isEmpty ? 'Required' : null,
-                  // Removed onChanged since we're not using the value
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
@@ -106,6 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
                 validator: (value) => value!.isEmpty ? 'Required' : null,
+                keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -135,5 +160,14 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
   }
 }

@@ -54,7 +54,8 @@ class ParcelModel {
       courierName: map['courierName'] ?? '',
       lockerNumber: map['lockerNumber'] ?? '',
       status: map['status'] ?? '',
-      deliveryTime: DateTime.fromMillisecondsSinceEpoch(map['deliveryTime']),
+      deliveryTime:
+          DateTime.fromMillisecondsSinceEpoch(map['deliveryTime'] ?? 0),
       collectionTime: map['collectionTime'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['collectionTime'])
           : null,

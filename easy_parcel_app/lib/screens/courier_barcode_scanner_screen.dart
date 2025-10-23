@@ -3,6 +3,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:convert';
 
 class CourierBarcodeScannerScreen extends StatefulWidget {
+  const CourierBarcodeScannerScreen({super.key});
+
   @override
   _CourierBarcodeScannerScreenState createState() =>
       _CourierBarcodeScannerScreenState();
@@ -17,11 +19,11 @@ class _CourierBarcodeScannerScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Scan Student QR Code'),
+        title: const Text('Scan Student QR Code'),
         actions: [
           IconButton(
-            color: Colors.white, // Assuming you want white icons
-            icon: ValueListenableBuilder<MobileScannerState>(
+            color: Colors.white,
+            icon: ValueListenableBuilder(
               valueListenable: cameraController,
               builder: (context, state, child) {
                 switch (state.torchState) {
@@ -33,20 +35,16 @@ class _CourierBarcodeScannerScreenState
                     return const Icon(Icons.flash_auto);
                   case TorchState.unavailable:
                     return const Icon(Icons.no_flash);
-                  default:
-                    return const Icon(Icons.flash_off);
                 }
               },
             ),
             onPressed: () => cameraController.toggleTorch(),
           ),
-          // ✅ Correct Camera Switch Button
           IconButton(
-            color: Colors.white, // Assuming you want white icons
-            icon: ValueListenableBuilder<MobileScannerState>(
+            color: Colors.white,
+            icon: ValueListenableBuilder(
               valueListenable: cameraController,
               builder: (context, state, child) {
-                // Access the 'cameraDirection' state
                 switch (state.cameraDirection) {
                   case CameraFacing.front:
                     return const Icon(Icons.camera_front);
@@ -81,9 +79,9 @@ class _CourierBarcodeScannerScreenState
             ),
           ),
           Container(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             color: Colors.black87,
-            child: Text(
+            child: const Text(
               'Scan student QR code to automatically fill details',
               style: TextStyle(color: Colors.white),
               textAlign: TextAlign.center,
@@ -144,22 +142,23 @@ class _CourierBarcodeScannerScreenState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Invalid QR Code'),
-        content: Text('Could not read student information from the QR code.'),
+        title: const Text('Invalid QR Code'),
+        content:
+            const Text('Could not read student information from the QR code.'),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _resetScanner();
             },
-            child: Text('Try Again'),
+            child: const Text('Try Again'),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               Navigator.pop(context);
             },
-            child: Text('Manual Entry'),
+            child: const Text('Manual Entry'),
           ),
         ],
       ),

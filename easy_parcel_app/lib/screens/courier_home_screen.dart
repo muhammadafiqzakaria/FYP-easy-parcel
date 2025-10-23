@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'courier_barcode_scanner_screen.dart';
 import '../models/parcel_model.dart';
-import '../utils/mock_database.dart';
+import '../services/supabase_service.dart';
 import 'login_screen.dart';
 
 class CourierHomeScreen extends StatefulWidget {
@@ -20,20 +20,33 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
   bool _isLoading = false;
   bool _showManualForm = false;
 
+  late final SupabaseService _supabaseService;
+  List<ParcelModel> _deliveryHistory = [];
+
   @override
-  void dispose() {
-    _studentIdController.dispose();
-    _studentNameController.dispose();
-    _studentEmailController.dispose();
-    _lockerNumberController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadDeliveryHistory();
+  }
+
+  void _loadDeliveryHistory() {
+    final currentUser = _supabaseService.currentUser;
+    if (currentUser != null) {
+      _supabaseService.getParcelsForCourier(currentUser.uid).listen((parcels) {
+        if (mounted) {
+          setState(() {
+            _deliveryHistory = parcels;
+          });
+        }
+      });
+    }
   }
 
   void _startBarcodeScan(BuildContext context) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CourierBarcodeScannerScreen(),
+        builder: (context) => CourierBarcodeScannerScreen(), // Remove const
       ),
     );
 
@@ -42,7 +55,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
         _studentIdController.text = result['studentId'] ?? '';
         _studentNameController.text = result['studentName'] ?? '';
         _studentEmailController.text = result['studentEmail'] ?? '';
-        _showManualForm = true; // Show form after scanning
+        _showManualForm = true;
       });
     }
   }
@@ -63,7 +76,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
     _lockerNumberController.clear();
   }
 
-  void _deliverParcel() {
+  void _deliverParcel() async {
     if (_lockerNumberController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter locker number')),
@@ -83,30 +96,32 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
       _isLoading = true;
     });
 
-    final newParcel = ParcelModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+    final currentUser = _supabaseService.currentUser;
+
+    final newParcel = await _supabaseService.createParcel(
       studentId: _studentIdController.text,
       studentName: _studentNameController.text.isNotEmpty
           ? _studentNameController.text
           : 'Student ${_studentIdController.text}',
       studentEmail: _studentEmailController.text,
-      courierId: 'courier_123',
-      courierName: 'Courier Staff',
+      courierId: currentUser?.uid ?? 'courier_123',
+      courierName: currentUser?.name ?? 'Courier Staff',
       lockerNumber: _lockerNumberController.text,
-      status: 'delivered',
-      deliveryTime: DateTime.now(),
-      otp: MockDatabase.generateOTP(),
-      barcode: 'BC${DateTime.now().millisecondsSinceEpoch}',
     );
 
-    Future.delayed(const Duration(seconds: 1), () {
-      setState(() {
-        _isLoading = false;
-      });
+    setState(() {
+      _isLoading = false;
+    });
 
+    if (newParcel != null) {
       _showSuccessDialog(newParcel);
       _clearForm();
-    });
+      _loadDeliveryHistory();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to create parcel')),
+      );
+    }
   }
 
   void _showSuccessDialog(ParcelModel parcel) {
@@ -179,11 +194,88 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
   }
 
   void _logout() {
-    MockDatabase.currentUser = null;
+    _supabaseService.signOut();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
+  }
+
+  Widget _buildDeliveryHistory() {
+    if (_deliveryHistory.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('No delivery history'),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _deliveryHistory.length,
+      itemBuilder: (context, index) {
+        final parcel = _deliveryHistory[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ListTile(
+            leading: const Icon(Icons.local_shipping, color: Colors.blue),
+            title: Text('Locker: ${parcel.lockerNumber}'),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Student: ${parcel.studentName}'),
+                Text('Email: ${parcel.studentEmail}'),
+                Text('Status: ${parcel.status.toUpperCase()}'),
+                Text('Delivery: ${_formatDate(parcel.deliveryTime)}'),
+                if (parcel.collectionTime != null)
+                  Text('Collection: ${_formatDate(parcel.collectionTime!)}'),
+              ],
+            ),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: parcel.status == 'delivered'
+                    ? Colors.orange.withOpacity(0.1)
+                    : Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: parcel.status == 'delivered'
+                      ? Colors.orange
+                      : Colors.green,
+                ),
+              ),
+              child: Text(
+                parcel.status == 'delivered' ? 'PENDING' : 'COLLECTED',
+                style: TextStyle(
+                  color: parcel.status == 'delivered'
+                      ? Colors.orange
+                      : Colors.green,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void dispose() {
+    _studentIdController.dispose();
+    _studentNameController.dispose();
+    _studentEmailController.dispose();
+    _lockerNumberController.dispose();
+    super.dispose();
   }
 
   @override
@@ -208,11 +300,10 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
         ),
         body: TabBarView(
           children: [
-            // Deliver Tab with Barcode Scanner - USING SINGLE CHILD SCROLL VIEW
+            // Deliver Tab
             Padding(
               padding: const EdgeInsets.all(16),
               child: SingleChildScrollView(
-                // Added this to fix overflow
                 child: Column(
                   children: [
                     // Scan Barcode Section
@@ -233,7 +324,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              'Scan the student\'s QR code to automatically fill their details',
+                              'Scan the student QR code to automatically fill their details',
                               textAlign: TextAlign.center,
                               style: TextStyle(color: Colors.grey),
                             ),
@@ -271,7 +362,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
                       ),
                     ),
 
-                    // SINGLE FORM SECTION - Shows for both barcode scan and manual entry
+                    // Form Section
                     if (_showManualForm) ...[
                       const SizedBox(height: 20),
                       Card(
@@ -350,16 +441,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
             ),
 
             // History Tab
-            const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.history, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No delivery history'),
-                ],
-              ),
-            ),
+            _buildDeliveryHistory(),
           ],
         ),
       ),
