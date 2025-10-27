@@ -33,8 +33,6 @@ class _CourierBarcodeScannerScreenState
                     return const Icon(Icons.flash_auto);
                   case TorchState.unavailable:
                     return const Icon(Icons.no_flash);
-                  default:
-                    return const Icon(Icons.flash_off);
                 }
               },
             ),
