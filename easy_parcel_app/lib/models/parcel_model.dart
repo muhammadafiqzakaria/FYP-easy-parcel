@@ -1,3 +1,5 @@
+// lib/models/parcel_model.dart
+
 class ParcelModel {
   final String id;
   final String studentId;
@@ -37,6 +39,7 @@ class ParcelModel {
       'courierName': courierName,
       'lockerNumber': lockerNumber,
       'status': status,
+      // Send as milliseconds (bigint)
       'deliveryTime': deliveryTime.millisecondsSinceEpoch,
       'collectionTime': collectionTime?.millisecondsSinceEpoch,
       'otp': otp,
@@ -45,6 +48,43 @@ class ParcelModel {
   }
 
   factory ParcelModel.fromMap(Map<String, dynamic> map) {
+    // --- THIS IS THE BULLETPROOF FIX ---
+    // Helper function to safely parse a value that should be an int (milliseconds)
+    int _parseMilliseconds(dynamic value) {
+      if (value == null) {
+        return 0; // Default to epoch time if null
+      }
+      if (value is int) {
+        return value;
+      }
+      if (value is double) {
+        return value.toInt();
+      }
+      if (value is String) {
+        // Try to parse it as a number string (e.g., "123456")
+        return num.tryParse(value)?.toInt() ?? 0;
+      }
+      return 0; // Default fallback
+    }
+
+    // Helper for nullable
+    int? _parseNullableMilliseconds(dynamic value) {
+      if (value == null) {
+        return null;
+      }
+      if (value is int) {
+        return value;
+      }
+      if (value is double) {
+        return value.toInt();
+      }
+      if (value is String) {
+        return num.tryParse(value)?.toInt();
+      }
+      return null;
+    }
+    // --- END OF FIX ---
+
     return ParcelModel(
       id: map['id'] ?? '',
       studentId: map['studentId'] ?? '',
@@ -54,11 +94,16 @@ class ParcelModel {
       courierName: map['courierName'] ?? '',
       lockerNumber: map['lockerNumber'] ?? '',
       status: map['status'] ?? '',
-      deliveryTime:
-          DateTime.fromMillisecondsSinceEpoch(map['deliveryTime'] ?? 0),
-      collectionTime: map['collectionTime'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(map['collectionTime'])
+
+      // Use the helper functions for safety
+      deliveryTime: DateTime.fromMillisecondsSinceEpoch(
+          _parseMilliseconds(map['deliveryTime'])),
+
+      collectionTime: _parseNullableMilliseconds(map['collectionTime']) != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              _parseNullableMilliseconds(map['collectionTime'])!)
           : null,
+
       otp: map['otp'] ?? '',
       barcode: map['barcode'] ?? '',
     );

@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  late final SupabaseService _supabaseService;
+  final SupabaseService _supabaseService = SupabaseService();
 
   bool _isLoading = false;
   bool _isLogin = true;
@@ -27,8 +27,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize your service here.
-    _supabaseService = SupabaseService();
   }
 
   void _submit() async {

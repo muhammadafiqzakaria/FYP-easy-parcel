@@ -1,3 +1,5 @@
+// lib/services/supabase_service.dart
+
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../models/user_model.dart';
 import '../models/parcel_model.dart';
@@ -8,6 +10,11 @@ class SupabaseService {
   SupabaseService._internal();
 
   supabase.SupabaseClient get _supabase => supabase.Supabase.instance.client;
+
+  // --- THIS IS THE FIX ---
+  // A variable to hold the user data *after* they log in.
+  User? _currentUser;
+  // --- END FIX ---
 
   // Auth Methods
   Future<User?> signUp({
@@ -29,13 +36,16 @@ class SupabaseService {
       );
 
       if (response.user != null) {
-        return User(
+        // Create the user model
+        final newUser = User(
           uid: response.user!.id,
           email: email,
           name: name,
           role: role,
           phoneNumber: phoneNumber,
         );
+        _currentUser = newUser; // <-- Store the user in the service
+        return _currentUser;
       }
       return null;
     } catch (e) {
@@ -54,13 +64,16 @@ class SupabaseService {
 
       if (response.user != null) {
         final userData = response.user!.userMetadata ?? {};
-        return User(
+        // Create the user model
+        final user = User(
           uid: response.user!.id,
           email: email,
           name: userData['name'] ?? '',
           role: userData['role'] ?? '',
           phoneNumber: userData['phone_number'] ?? '',
         );
+        _currentUser = user; // <-- Store the user in the service
+        return _currentUser;
       }
       return null;
     } catch (e) {
@@ -72,6 +85,7 @@ class SupabaseService {
   Future<void> signOut() async {
     try {
       await _supabase.auth.signOut();
+      _currentUser = null; // <-- Clear the user from the service
       print('User signed out successfully');
     } catch (e) {
       print('Error signing out: $e');
@@ -79,18 +93,29 @@ class SupabaseService {
     }
   }
 
+  // --- THIS GETTER IS NOW FIXED ---
   User? get currentUser {
+    // 1. Return the user we already stored
+    if (_currentUser != null) {
+      return _currentUser;
+    }
+
+    // 2. If it's null (e.g., app just reopened),
+    // try to get it from Supabase auth
     final user = _supabase.auth.currentUser;
     if (user != null) {
       final userData = user.userMetadata ?? {};
-      return User(
+      // Create, store, and return the user
+      _currentUser = User(
         uid: user.id,
         email: user.email ?? '',
         name: userData['name'] ?? '',
         role: userData['role'] ?? '',
         phoneNumber: userData['phone_number'] ?? '',
       );
+      return _currentUser;
     }
+    // 3. No user found
     return null;
   }
 
@@ -98,7 +123,10 @@ class SupabaseService {
     return _supabase.auth.currentUser != null;
   }
 
-  // Parcel Methods
+  //
+  // --- NO CHANGES NEEDED TO PARCEL METHODS ---
+  //
+
   String generateBarcode() {
     return 'BC${DateTime.now().millisecondsSinceEpoch}';
   }
@@ -147,7 +175,7 @@ class SupabaseService {
     return _supabase
         .from('parcels')
         .stream(primaryKey: ['id'])
-        .eq('student_email', studentEmail)
+        .eq('studentEmail', studentEmail)
         .map((data) => data.map((item) => ParcelModel.fromMap(item)).toList());
   }
 
@@ -155,7 +183,7 @@ class SupabaseService {
     return _supabase
         .from('parcels')
         .stream(primaryKey: ['id'])
-        .eq('courier_id', courierId)
+        .eq('courierId', courierId)
         .map((data) => data.map((item) => ParcelModel.fromMap(item)).toList());
   }
 

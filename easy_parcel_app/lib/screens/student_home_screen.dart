@@ -19,7 +19,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   bool _checkingStatus = false;
   List<ParcelModel> _studentParcels = [];
 
-  late final SupabaseService _supabaseService;
+  final SupabaseService _supabaseService = SupabaseService();
 
   @override
   void initState() {
@@ -30,24 +30,49 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   void _initializeConnection() {
     print('🚀 Initializing locker connection...');
-    ESP32Service.testConnection();
+    //ESP32Service.testConnection();
     _checkLockerStatus();
     _startPeriodicStatusCheck();
   }
+
+  // lib/screens/student_home_screen.dart
 
   void _loadStudentParcels() {
     final currentUser = _supabaseService.currentUser;
     if (currentUser != null) {
       _supabaseService
           .getParcelsForStudent(currentUser.email)
-          .listen((parcels) {
-        if (mounted) {
-          setState(() {
-            _studentParcels = parcels;
-          });
-        }
-      });
+          .listen(
+            (parcels) {
+              // This is the "success" case
+              if (mounted) {
+                setState(() {
+                  _studentParcels = parcels;
+                });
+              }
+            },
+
+            // --- THIS IS THE FIX ---
+            // Add an onError handler to catch any database errors
+            onError: (error) {
+              if (mounted) {
+                print('❌❌❌ Error loading parcels: $error ❌❌❌');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error loading parcels: $error'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                setState(() {
+                  _studentParcels = []; // Show an empty list on error
+                });
+              }
+            },
+
+            // --- END OF FIX ---
+          );
     } else {
+      // This is fine
       setState(() {
         _studentParcels = [];
       });
@@ -89,7 +114,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   }
 
   Future<void> _sendOTPToHardware(
-      String otp, String lockerNumber, String parcelId) async {
+    String otp,
+    String lockerNumber,
+    String parcelId,
+  ) async {
     setState(() {
       _isSendingOTP = true;
     });
@@ -251,9 +279,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   void _refreshParcels() {
     _loadStudentParcels();
     _checkLockerStatus();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Refreshed parcel list')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Refreshed parcel list')));
   }
 
   @override
@@ -360,18 +388,12 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         children: [
           Text(
             'Welcome, ${user?.name ?? 'Student'}!',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
             'You have ${_studentParcels.length} parcel(s)',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
           ),
         ],
       ),
@@ -493,10 +515,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           const SizedBox(height: 4),
           const Text(
             'Parcel collected successfully',
-            style: TextStyle(
-              color: Colors.green,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: Colors.green, fontSize: 12),
           ),
         ],
       ],
@@ -509,10 +528,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         : ElevatedButton.icon(
             onPressed: _lockerOnline
                 ? () => _sendOTPToHardware(
-                      parcel.otp,
-                      parcel.lockerNumber,
-                      parcel.id,
-                    )
+                    parcel.otp,
+                    parcel.lockerNumber,
+                    parcel.id,
+                  )
                 : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: _lockerOnline ? Colors.green : Colors.grey,

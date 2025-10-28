@@ -20,7 +20,8 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
   bool _isLoading = false;
   bool _showManualForm = false;
 
-  late final SupabaseService _supabaseService;
+  final SupabaseService _supabaseService = SupabaseService();
+
   List<ParcelModel> _deliveryHistory = [];
 
   @override
@@ -29,15 +30,43 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
     _loadDeliveryHistory();
   }
 
+  // lib/screens/courier_home_screen.dart
+
   void _loadDeliveryHistory() {
     final currentUser = _supabaseService.currentUser;
     if (currentUser != null) {
-      _supabaseService.getParcelsForCourier(currentUser.uid).listen((parcels) {
-        if (mounted) {
-          setState(() {
-            _deliveryHistory = parcels;
-          });
-        }
+      _supabaseService.getParcelsForCourier(currentUser.uid).listen(
+        (parcels) {
+          // This is the "success" case
+          if (mounted) {
+            setState(() {
+              _deliveryHistory = parcels;
+            });
+          }
+        },
+
+        // --- THIS IS THE FIX ---
+        // Add an onError handler to catch any database errors
+        onError: (error) {
+          if (mounted) {
+            print('❌❌❌ Error loading courier history: $error ❌❌❌');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error loading history: $error'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            setState(() {
+              _deliveryHistory = []; // Show an empty list on error
+            });
+          }
+        },
+        // --- END OF FIX ---
+      );
+    } else {
+      // Also set to empty list if there's no user
+      setState(() {
+        _deliveryHistory = [];
       });
     }
   }
