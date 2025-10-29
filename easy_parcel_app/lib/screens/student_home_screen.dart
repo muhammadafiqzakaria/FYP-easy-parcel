@@ -5,6 +5,7 @@ import 'login_screen.dart';
 import '../models/user_model.dart';
 import '../models/parcel_model.dart';
 import '../services/supabase_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -22,11 +23,36 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   final SupabaseService _supabaseService = SupabaseService();
 
   @override
-  void initState() {
-    super.initState();
-    _initializeConnection();
-    _loadStudentParcels();
-  }
+void initState() {
+  super.initState();
+  _initializeConnection();
+  _loadStudentParcels();
+
+  // --- ADD THIS CODE ---
+  // Listen for notifications while the app is open
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print('Got a message whilst in the foreground!');
+    if (message.notification != null) {
+      print('Message also contained a notification: ${message.notification}');
+      
+      // Show an in-app dialog or snackbar
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(message.notification?.title ?? "New Notification"),
+          content: Text(message.notification?.body ?? "You have a new message."),
+          actions: [
+            TextButton(
+              child: Text("OK"),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      );
+    }
+  });
+  // --- END OF NEW CODE ---
+}
 
   void _initializeConnection() {
     print('🚀 Initializing locker connection...');
