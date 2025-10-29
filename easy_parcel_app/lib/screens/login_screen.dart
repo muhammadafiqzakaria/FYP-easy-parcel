@@ -22,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
   bool _isLogin = true;
+  bool _obscurePassword = true;
   String _role = 'student';
 
   @override
@@ -133,10 +134,22 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
+                decoration: InputDecoration( 
+                  labelText: 'Password',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
+                ), 
                 validator: (value) =>
                     value!.length < 6 ? 'Minimum 6 characters' : null,
-                obscureText: true,
+                obscureText: _obscurePassword, 
               ),
               const SizedBox(height: 30),
               if (_isLoading)
