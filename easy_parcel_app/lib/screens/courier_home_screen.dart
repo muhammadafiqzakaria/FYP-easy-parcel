@@ -3,6 +3,7 @@ import 'courier_barcode_scanner_screen.dart';
 import '../models/parcel_model.dart';
 import '../services/supabase_service.dart';
 import 'login_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 
 class CourierHomeScreen extends StatefulWidget {
   const CourierHomeScreen({super.key});
@@ -31,37 +32,38 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
   }
 
   void _loadDeliveryHistory() {
-    final currentUser = _supabaseService.currentUser;
-    if (currentUser != null) {
-      _supabaseService.getParcelsForCourier(currentUser.id).listen(
-        (parcels) {
-          if (mounted) {
-            setState(() {
-              _deliveryHistory = parcels;
-            });
-          }
-        },
-        onError: (error) {
-          if (mounted) {
-            print('❌❌❌ Error loading courier history: $error ❌❌❌');
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error loading history: $error'),
-                backgroundColor: Colors.red,
-              ),
-            );
-            setState(() {
-              _deliveryHistory = []; 
-            });
-          }
-        },
-      );
-    } else {
-      setState(() {
-        _deliveryHistory = [];
-      });
-    }
+  final currentUser = _supabaseService.currentUser;
+  if (currentUser?.id == null) {
+    setState(() {
+      _deliveryHistory = [];
+    });
+    return;
   }
+  
+  _supabaseService.getParcelsForCourier(currentUser!.id).listen(
+    (parcels) {
+      if (mounted) {
+        setState(() {
+          _deliveryHistory = parcels;
+        });
+      }
+    },
+    onError: (error) {
+      if (mounted) {
+        print('❌❌❌ Error loading courier history: $error ❌❌❌');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading history: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _deliveryHistory = []; 
+        });
+      }
+    },
+  );
+}
 
   void _startBarcodeScan(BuildContext context) async {
     final result = await Navigator.push(
@@ -135,6 +137,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
     });
 
     if (newParcel != null) {
+      await _sendDeliveryNotification(newParcel);
       _showSuccessDialog(newParcel);
       _clearForm();
       _loadDeliveryHistory();
@@ -463,5 +466,38 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
         ),
       ),
     );
+  }
+}
+
+Future<void> _sendDeliveryNotification(ParcelModel parcel) async {
+  try {
+    print('📧 Attempting to send notification for parcel: ${parcel.id}');
+    
+    // First, get the student's user_id from their email
+    final studentProfileResponse = await Supabase.instance.client
+        .from('profiles')
+        .select('id')
+        .eq('email', parcel.studentEmail)
+        .maybeSingle();
+
+    if (studentProfileResponse != null && studentProfileResponse['id'] != null) {
+      final studentId = studentProfileResponse['id'] as String;
+      
+      // Store notification in database using user_id
+      await Supabase.instance.client.from('notifications').insert({
+        'user_id': studentId,
+        'title': 'New Parcel Delivery',
+        'body': 'You have a new parcel waiting at Locker ${parcel.lockerNumber}. OTP: ${parcel.otp}',
+        'type': 'delivery',
+        'parcel_id': parcel.id,
+      });
+      
+      print('✅ Delivery notification stored for user: $studentId');
+    } else {
+      print('❌ Student profile not found for email: ${parcel.studentEmail}');
+    }
+    
+  } catch (e) {
+    print('❌ Error sending notification: $e');
   }
 }

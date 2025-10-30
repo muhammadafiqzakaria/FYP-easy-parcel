@@ -83,31 +83,32 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _getAndSaveFcmToken(BuildContext context, String userId) async {
-    try {
-      
-      await FirebaseMessaging.instance.requestPermission();
-      
-      final fcmToken = await FirebaseMessaging.instance.getToken();
+  try {
+    await FirebaseMessaging.instance.requestPermission();
+    
+    final fcmToken = await FirebaseMessaging.instance.getToken();
 
-      if (fcmToken != null) {
-        await Supabase.instance.client.from('profiles').upsert({
-          'id': userId, 
-          'fcm_token': fcmToken, 
-        });
-        print('✅ FCM Token Saved: $fcmToken');
-      }
-    } catch (e) {
-      print('❌ Error saving FCM token: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving notification token: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (fcmToken != null) {
+      await Supabase.instance.client.from('profiles').upsert({
+        'id': userId, 
+        'fcm_token': fcmToken, 
+      });
+      print('✅ FCM Token Saved for user $userId: $fcmToken');
+    } else {
+      print('❌ FCM Token is null');
+    }
+  } catch (e) {
+    print('❌ Error saving FCM token: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving notification token: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

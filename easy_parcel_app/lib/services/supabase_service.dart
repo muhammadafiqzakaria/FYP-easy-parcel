@@ -15,24 +15,25 @@ class SupabaseService {
   User? get currentUser => _currentUser;
 
   Future<User?> loadUserFromSession() async {
-    final supabaseUser = _supabase.auth.currentUser;
-    if (supabaseUser != null) {
-      try {
-        final profileData = await _supabase
-            .from('profiles')
-            .select()
-            .eq('id', supabaseUser.id) 
-            .single();
-        
-        _currentUser = User.fromMap(profileData);
-        return _currentUser;
-      } catch (e) {
-        print('Error loading user profile: $e');
-        return null;
-      }
-    }
+  final supabaseUser = _supabase.auth.currentUser;
+  if (supabaseUser == null) {
     return null;
   }
+  
+  try {
+    final profileData = await _supabase
+        .from('profiles')
+        .select()
+        .eq('id', supabaseUser.id) 
+        .single();
+    
+    _currentUser = User.fromMap(profileData);
+    return _currentUser;
+  } catch (e) {
+    print('Error loading user profile: $e');
+    return null;
+  }
+}
   
   Future<User?> signUp({
     required String email,
@@ -58,14 +59,14 @@ class SupabaseService {
 
         // Save the user's info to the 'profiles' table
         await _supabase.from('profiles').insert({
-          'id': newUser.id, // <-- FIXED
+          'id': newUser.id,
           'email': newUser.email,
           'name': newUser.name,
           'role': newUser.role,
           'phoneNumber': newUser.phoneNumber,
         });
                 
-        _currentUser = newUser; // Store the user in the service
+        _currentUser = newUser;
         return _currentUser;
       }
       return null;
@@ -76,31 +77,32 @@ class SupabaseService {
   }
 
   Future<User?> signIn(String email, String password) async {
-    try {
-      final supabase.AuthResponse response =
-          await _supabase.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
+  try {
+    final supabase.AuthResponse response =
+        await _supabase.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
 
-      if (response.user != null) {
-        // Fetch the user's info from the 'profiles' table
-        final profileData = await _supabase
-            .from('profiles')
-            .select()
-            .eq('id', response.user!.id) // <-- FIXED
-            .single();
-
-        final user = User.fromMap(profileData);
-        _currentUser = user; // Store the user in the service
-        return _currentUser;
-      }
+    if (response.user == null) {
       return null;
-    } catch (e) {
-      print('Sign in error: $e');
-      rethrow;
     }
+
+    // Fetch the user's info from the 'profiles' table
+    final profileData = await _supabase
+        .from('profiles')
+        .select()
+        .eq('id', response.user!.id)
+        .single();
+
+    final user = User.fromMap(profileData);
+    _currentUser = user;
+    return _currentUser;
+  } catch (e) {
+    print('Sign in error: $e');
+    rethrow;
   }
+}
 
   Future<void> signOut() async {
     try {
@@ -117,7 +119,7 @@ class SupabaseService {
     return _supabase.auth.currentUser != null;
   }
 
-  // --- PARCEL FUNCTIONS (No changes needed) ---
+  // --- PARCEL FUNCTIONS ---
   
   String generateBarcode() {
     return 'BC${DateTime.now().millisecondsSinceEpoch}';
