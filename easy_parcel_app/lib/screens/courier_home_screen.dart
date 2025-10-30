@@ -30,23 +30,17 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
     _loadDeliveryHistory();
   }
 
-  // lib/screens/courier_home_screen.dart
-
   void _loadDeliveryHistory() {
     final currentUser = _supabaseService.currentUser;
     if (currentUser != null) {
-      _supabaseService.getParcelsForCourier(currentUser.uid).listen(
+      _supabaseService.getParcelsForCourier(currentUser.id).listen(
         (parcels) {
-          // This is the "success" case
           if (mounted) {
             setState(() {
               _deliveryHistory = parcels;
             });
           }
         },
-
-        // --- THIS IS THE FIX ---
-        // Add an onError handler to catch any database errors
         onError: (error) {
           if (mounted) {
             print('❌❌❌ Error loading courier history: $error ❌❌❌');
@@ -57,14 +51,12 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
               ),
             );
             setState(() {
-              _deliveryHistory = []; // Show an empty list on error
+              _deliveryHistory = []; 
             });
           }
         },
-        // --- END OF FIX ---
       );
     } else {
-      // Also set to empty list if there's no user
       setState(() {
         _deliveryHistory = [];
       });
@@ -133,7 +125,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
           ? _studentNameController.text
           : 'Student ${_studentIdController.text}',
       studentEmail: _studentEmailController.text,
-      courierId: currentUser?.uid ?? 'courier_123',
+      courierId: currentUser?.id ?? 'courier_123',
       courierName: currentUser?.name ?? 'Courier Staff',
       lockerNumber: _lockerNumberController.text,
     );
@@ -329,13 +321,11 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
         ),
         body: TabBarView(
           children: [
-            // Deliver Tab
             Padding(
               padding: const EdgeInsets.all(16),
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    // Scan Barcode Section
                     Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -391,7 +381,6 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
                       ),
                     ),
 
-                    // Form Section
                     if (_showManualForm) ...[
                       const SizedBox(height: 20),
                       Card(
@@ -469,7 +458,6 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
               ),
             ),
 
-            // History Tab
             _buildDeliveryHistory(),
           ],
         ),

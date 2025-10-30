@@ -9,7 +9,7 @@
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <application
-        android:label="easy_parcel_app"
+        android:label="Easy Parcel"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

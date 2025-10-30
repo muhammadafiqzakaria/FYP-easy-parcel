@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'courier_home_screen.dart';
 import 'student_home_screen.dart';
 import '../services/supabase_service.dart';
@@ -56,6 +58,9 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = false);
 
       if (user != null) {
+        if (user.role == 'student') {
+          await _getAndSaveFcmToken(context, user.id);
+        }
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -74,6 +79,33 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
+    }
+  }
+
+  Future<void> _getAndSaveFcmToken(BuildContext context, String userId) async {
+    try {
+      
+      await FirebaseMessaging.instance.requestPermission();
+      
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+
+      if (fcmToken != null) {
+        await Supabase.instance.client.from('profiles').upsert({
+          'id': userId, 
+          'fcm_token': fcmToken, 
+        });
+        print('✅ FCM Token Saved: $fcmToken');
+      }
+    } catch (e) {
+      print('❌ Error saving FCM token: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving notification token: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

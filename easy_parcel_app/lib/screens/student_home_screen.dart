@@ -5,7 +5,6 @@ import 'login_screen.dart';
 import '../models/user_model.dart';
 import '../models/parcel_model.dart';
 import '../services/supabase_service.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -14,7 +13,15 @@ class StudentHomeScreen extends StatefulWidget {
   State<StudentHomeScreen> createState() => _StudentHomeScreenState();
 }
 
-class _StudentHomeScreenState extends State<StudentHomeScreen> {
+// --- NEW ---
+// Add "with SingleTickerProviderStateMixin" to handle tab animations
+class _StudentHomeScreenState extends State<StudentHomeScreen>
+    with SingleTickerProviderStateMixin {
+  
+  // --- NEW ---
+  // Controller to manage the tabs
+  late TabController _tabController;
+
   bool _isSendingOTP = false;
   bool _lockerOnline = false;
   bool _checkingStatus = false;
@@ -23,82 +30,58 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   final SupabaseService _supabaseService = SupabaseService();
 
   @override
-void initState() {
-  super.initState();
-  _initializeConnection();
-  _loadStudentParcels();
+  void initState() {
+    super.initState();
 
-  // --- ADD THIS CODE ---
-  // Listen for notifications while the app is open
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    print('Got a message whilst in the foreground!');
-    if (message.notification != null) {
-      print('Message also contained a notification: ${message.notification}');
-      
-      // Show an in-app dialog or snackbar
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(message.notification?.title ?? "New Notification"),
-          content: Text(message.notification?.body ?? "You have a new message."),
-          actions: [
-            TextButton(
-              child: Text("OK"),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-      );
-    }
-  });
-  // --- END OF NEW CODE ---
-}
+    // --- NEW ---
+    // Initialize the TabController with 2 tabs
+    _tabController = TabController(length: 2, vsync: this);
+
+    _initializeConnection();
+    _loadStudentParcels();
+  }
+
+  // --- NEW ---
+  // Don't forget to dispose the controller!
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   void _initializeConnection() {
     print('🚀 Initializing locker connection...');
-    //ESP32Service.testConnection();
+    // ESP32Service.testConnection(); // This line was causing a hang
     _checkLockerStatus();
     _startPeriodicStatusCheck();
   }
-
-  // lib/screens/student_home_screen.dart
 
   void _loadStudentParcels() {
     final currentUser = _supabaseService.currentUser;
     if (currentUser != null) {
       _supabaseService
           .getParcelsForStudent(currentUser.email)
-          .listen(
-            (parcels) {
-              // This is the "success" case
-              if (mounted) {
-                setState(() {
-                  _studentParcels = parcels;
-                });
-              }
-            },
-
-            // --- THIS IS THE FIX ---
-            // Add an onError handler to catch any database errors
-            onError: (error) {
-              if (mounted) {
-                print('❌❌❌ Error loading parcels: $error ❌❌❌');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error loading parcels: $error'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                setState(() {
-                  _studentParcels = []; // Show an empty list on error
-                });
-              }
-            },
-
-            // --- END OF FIX ---
+          .listen((parcels) {
+        if (mounted) {
+          setState(() {
+            _studentParcels = parcels;
+          });
+        }
+      }, onError: (error) { // This error handler is important
+        if (mounted) {
+          print('❌❌❌ Error loading parcels: $error ❌❌❌');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error loading parcels: $error'),
+              backgroundColor: Colors.red,
+            ),
           );
+          setState(() {
+            _studentParcels = [];
+          });
+        }
+      });
     } else {
-      // This is fine
       setState(() {
         _studentParcels = [];
       });
@@ -140,10 +123,7 @@ void initState() {
   }
 
   Future<void> _sendOTPToHardware(
-    String otp,
-    String lockerNumber,
-    String parcelId,
-  ) async {
+      String otp, String lockerNumber, String parcelId) async {
     setState(() {
       _isSendingOTP = true;
     });
@@ -164,6 +144,7 @@ void initState() {
   void _showSuccessDialog(String otp, String lockerNumber, String parcelId) {
     showDialog(
       context: context,
+      barrierDismissible: false, // User must scan
       builder: (context) => AlertDialog(
         title: const Row(
           children: [
@@ -208,23 +189,21 @@ void initState() {
             ),
             const SizedBox(height: 16),
             const Text(
-              'After collecting your parcel, scan the barcode to confirm collection',
+              'After collecting, scan the barcode to confirm',
               style: TextStyle(fontSize: 12, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
+          // --- CHANGED ---
+          // Make "Scan Barcode" the main action to confirm collection
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(context); // Close the dialog
               _navigateToBarcodeScanner(parcelId, lockerNumber);
             },
-            child: const Text('Scan Barcode'),
+            child: const Text('Scan Barcode to Confirm'),
           ),
         ],
       ),
@@ -305,14 +284,24 @@ void initState() {
   void _refreshParcels() {
     _loadStudentParcels();
     _checkLockerStatus();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Refreshed parcel list')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Refreshed parcel list')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final user = _supabaseService.currentUser;
+
+    // --- NEW ---
+    // Filter your parcels into two separate lists
+    final List<ParcelModel> deliveredParcels = _studentParcels
+        .where((p) => p.status == 'delivered')
+        .toList();
+    final List<ParcelModel> collectedParcels = _studentParcels
+        .where((p) => p.status == 'collected')
+        .toList();
+    // --- END NEW ---
 
     return Scaffold(
       appBar: AppBar(
@@ -330,16 +319,52 @@ void initState() {
             tooltip: 'Logout',
           ),
         ],
+        // --- NEW ---
+        // Add the TabBar to the bottom of the AppBar
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(
+              text: 'Ready for Pickup',
+              icon: Icon(Icons.inventory_2_outlined),
+            ),
+            Tab(
+              text: 'History',
+              icon: Icon(Icons.history),
+            ),
+          ],
+        ),
+        // --- END NEW ---
       ),
       body: Column(
         children: [
           _buildStatusBanner(),
+          // --- CHANGED ---
+          // Welcome header is now smaller and doesn't show parcel count
           _buildWelcomeHeader(user),
+          // --- END CHANGED ---
+
+          // --- NEW ---
+          // Replace the old Expanded with a TabBarView
           Expanded(
-            child: _studentParcels.isEmpty
-                ? _buildEmptyState()
-                : _buildParcelsList(),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Tab 1: Ready for Pickup
+                deliveredParcels.isEmpty
+                    ? _buildEmptyState() // Use original empty state
+                    : _buildParcelsList(
+                        deliveredParcels), // Pass the filtered list
+
+                // Tab 2: History
+                collectedParcels.isEmpty
+                    ? _buildHistoryEmptyState() // Use new history empty state
+                    : _buildParcelsList(
+                        collectedParcels), // Pass the filtered list
+              ],
+            ),
           ),
+          // --- END NEW ---
         ],
       ),
     );
@@ -406,25 +431,22 @@ void initState() {
     );
   }
 
+  // --- CHANGED ---
+  // Simplified the welcome header
   Widget _buildWelcomeHeader(User? user) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Welcome, ${user?.name ?? 'Student'}!',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'You have ${_studentParcels.length} parcel(s)',
-            style: const TextStyle(fontSize: 14, color: Colors.grey),
-          ),
-        ],
+      child: Text(
+        'Welcome, ${user?.name ?? 'Student'}!',
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
+  // --- END CHANGED ---
 
   Widget _buildEmptyState() {
     return Center(
@@ -450,15 +472,43 @@ void initState() {
     );
   }
 
-  Widget _buildParcelsList() {
+  // --- NEW ---
+  // A new empty state just for the history tab
+  Widget _buildHistoryEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.history_toggle_off, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            'No collected parcels yet',
+            style: TextStyle(fontSize: 18, color: Colors.grey),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Your collected parcels will appear here',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+  // --- END NEW ---
+
+  // --- CHANGED ---
+  // This widget now takes a list as a parameter
+  Widget _buildParcelsList(List<ParcelModel> parcels) {
     return ListView.builder(
-      itemCount: _studentParcels.length,
+      itemCount: parcels.length,
       itemBuilder: (context, index) {
-        final parcel = _studentParcels[index];
+        final parcel = parcels[index];
         return _buildParcelCard(parcel);
       },
     );
   }
+  // --- END CHANGED ---
 
   Widget _buildParcelCard(ParcelModel parcel) {
     return Card(
@@ -485,10 +535,30 @@ void initState() {
             ),
             const SizedBox(height: 12),
             _buildParcelDetails(parcel),
+            // Only show the button if the status is 'delivered'
             if (parcel.status == 'delivered') ...[
               const SizedBox(height: 16),
               _buildActionButton(parcel),
             ],
+            // --- NEW ---
+            // Here you could add your "Retrieve OTP" button for 'collected' parcels
+            if (parcel.status == 'collected') ...[
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Retrieve OTP'),
+                onPressed: () {
+                  // TODO: Add logic for retrieving OTP
+                  // This will require database changes (a counter)
+                  // and a new Edge Function.
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Retrieve OTP feature not yet implemented')),
+                  );
+                },
+              )
+            ]
+            // --- END NEW ---
           ],
         ),
       ),
@@ -541,7 +611,10 @@ void initState() {
           const SizedBox(height: 4),
           const Text(
             'Parcel collected successfully',
-            style: TextStyle(color: Colors.green, fontSize: 12),
+            style: TextStyle(
+              color: Colors.green,
+              fontSize: 12,
+            ),
           ),
         ],
       ],
@@ -554,10 +627,10 @@ void initState() {
         : ElevatedButton.icon(
             onPressed: _lockerOnline
                 ? () => _sendOTPToHardware(
-                    parcel.otp,
-                    parcel.lockerNumber,
-                    parcel.id,
-                  )
+                      parcel.otp,
+                      parcel.lockerNumber,
+                      parcel.id,
+                    )
                 : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: _lockerOnline ? Colors.green : Colors.grey,
@@ -567,7 +640,7 @@ void initState() {
             ),
             icon: const Icon(Icons.send),
             label: const Text(
-              'Send OTP to Locker & Collect Parcel',
+              'Get OTP',
               style: TextStyle(fontSize: 16),
             ),
           );

@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class ESP32Service {
-  static const String esp32IP = "10.11.170.229";
+  static const String esp32IP = "10.59.125.229";
   static const int timeoutSeconds = 5;
 
   // Test connection to ESP32
@@ -52,7 +52,6 @@ class ESP32Service {
     }
   }
 
-  // Send OTP to ESP32
   static Future<bool> sendOTPToLocker(String otp, String lockerNumber) async {
     try {
       print('📤 Sending OTP $otp to locker $lockerNumber...');
@@ -90,7 +89,6 @@ class ESP32Service {
     }
   }
 
-  // Get current OTP from ESP32
   static Future<String?> getCurrentOTP() async {
     try {
       final response = await http

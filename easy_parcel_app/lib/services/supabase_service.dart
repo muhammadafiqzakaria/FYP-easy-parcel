@@ -11,12 +11,29 @@ class SupabaseService {
 
   supabase.SupabaseClient get _supabase => supabase.Supabase.instance.client;
 
-  // --- THIS IS THE FIX ---
-  // A variable to hold the user data *after* they log in.
   User? _currentUser;
-  // --- END FIX ---
+  User? get currentUser => _currentUser;
 
-  // Auth Methods
+  Future<User?> loadUserFromSession() async {
+    final supabaseUser = _supabase.auth.currentUser;
+    if (supabaseUser != null) {
+      try {
+        final profileData = await _supabase
+            .from('profiles')
+            .select()
+            .eq('id', supabaseUser.id) 
+            .single();
+        
+        _currentUser = User.fromMap(profileData);
+        return _currentUser;
+      } catch (e) {
+        print('Error loading user profile: $e');
+        return null;
+      }
+    }
+    return null;
+  }
+  
   Future<User?> signUp({
     required String email,
     required String password,
@@ -28,23 +45,27 @@ class SupabaseService {
       final supabase.AuthResponse response = await _supabase.auth.signUp(
         email: email,
         password: password,
-        data: {
-          'name': name,
-          'role': role,
-          'phone_number': phoneNumber,
-        },
       );
 
       if (response.user != null) {
-        // Create the user model
         final newUser = User(
-          uid: response.user!.id,
+          id: response.user!.id,
           email: email,
           name: name,
           role: role,
           phoneNumber: phoneNumber,
         );
-        _currentUser = newUser; // <-- Store the user in the service
+
+        // Save the user's info to the 'profiles' table
+        await _supabase.from('profiles').insert({
+          'id': newUser.id, // <-- FIXED
+          'email': newUser.email,
+          'name': newUser.name,
+          'role': newUser.role,
+          'phoneNumber': newUser.phoneNumber,
+        });
+                
+        _currentUser = newUser; // Store the user in the service
         return _currentUser;
       }
       return null;
@@ -63,16 +84,15 @@ class SupabaseService {
       );
 
       if (response.user != null) {
-        final userData = response.user!.userMetadata ?? {};
-        // Create the user model
-        final user = User(
-          uid: response.user!.id,
-          email: email,
-          name: userData['name'] ?? '',
-          role: userData['role'] ?? '',
-          phoneNumber: userData['phone_number'] ?? '',
-        );
-        _currentUser = user; // <-- Store the user in the service
+        // Fetch the user's info from the 'profiles' table
+        final profileData = await _supabase
+            .from('profiles')
+            .select()
+            .eq('id', response.user!.id) // <-- FIXED
+            .single();
+
+        final user = User.fromMap(profileData);
+        _currentUser = user; // Store the user in the service
         return _currentUser;
       }
       return null;
@@ -85,7 +105,7 @@ class SupabaseService {
   Future<void> signOut() async {
     try {
       await _supabase.auth.signOut();
-      _currentUser = null; // <-- Clear the user from the service
+      _currentUser = null;
       print('User signed out successfully');
     } catch (e) {
       print('Error signing out: $e');
@@ -93,40 +113,12 @@ class SupabaseService {
     }
   }
 
-  // --- THIS GETTER IS NOW FIXED ---
-  User? get currentUser {
-    // 1. Return the user we already stored
-    if (_currentUser != null) {
-      return _currentUser;
-    }
-
-    // 2. If it's null (e.g., app just reopened),
-    // try to get it from Supabase auth
-    final user = _supabase.auth.currentUser;
-    if (user != null) {
-      final userData = user.userMetadata ?? {};
-      // Create, store, and return the user
-      _currentUser = User(
-        uid: user.id,
-        email: user.email ?? '',
-        name: userData['name'] ?? '',
-        role: userData['role'] ?? '',
-        phoneNumber: userData['phone_number'] ?? '',
-      );
-      return _currentUser;
-    }
-    // 3. No user found
-    return null;
-  }
-
   bool get isAuthenticated {
     return _supabase.auth.currentUser != null;
   }
 
-  //
-  // --- NO CHANGES NEEDED TO PARCEL METHODS ---
-  //
-
+  // --- PARCEL FUNCTIONS (No changes needed) ---
+  
   String generateBarcode() {
     return 'BC${DateTime.now().millisecondsSinceEpoch}';
   }
