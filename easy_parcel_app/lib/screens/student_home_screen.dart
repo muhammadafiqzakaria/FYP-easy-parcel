@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'barcode_scanner_screen.dart';
 import '../services/esp32_service.dart';
 import 'login_screen.dart';
-import '../models/user_model.dart';
 import '../models/parcel_model.dart';
 import '../services/supabase_service.dart';
 
@@ -48,37 +47,37 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
   }
 
   void _loadStudentParcels() {
-  final currentUser = _supabaseService.currentUser;
-  if (currentUser?.email == null) {
-    setState(() {
-      _studentParcels = [];
-    });
-    return;
-  }
-  
-  _supabaseService
-      .getParcelsForStudent(currentUser!.email)
-      .listen((parcels) {
-    if (mounted) {
-      setState(() {
-        _studentParcels = parcels;
-      });
-    }
-  }, onError: (error) {
-    if (mounted) {
-      print('❌❌❌ Error loading parcels: $error ❌❌❌');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading parcels: $error'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    final currentUser = _supabaseService.currentUser;
+    if (currentUser?.email == null) {
       setState(() {
         _studentParcels = [];
       });
+      return;
     }
-  });
-}
+    
+    _supabaseService
+        .getParcelsForStudent(currentUser!.email)
+        .listen((parcels) {
+      if (mounted) {
+        setState(() {
+          _studentParcels = parcels;
+        });
+      }
+    }, onError: (error) {
+      if (mounted) {
+        print('❌❌❌ Error loading parcels: $error ❌❌❌');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading parcels: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _studentParcels = [];
+        });
+      }
+    });
+  }
 
   void _logout() {
     _supabaseService.signOut();
@@ -138,6 +137,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
             Icon(Icons.check_circle, color: Colors.green),
@@ -154,7 +154,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.green[50],
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 children: [
@@ -189,6 +189,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
         ),
         actions: [
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[600],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
             onPressed: () {
               Navigator.pop(context);
               _navigateToBarcodeScanner(parcelId, lockerNumber);
@@ -218,6 +226,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
             Icon(Icons.error, color: Colors.red),
@@ -253,6 +262,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
             ),
             const SizedBox(height: 16),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[600],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               onPressed: () {
                 Navigator.pop(context);
                 _checkLockerStatus();
@@ -264,7 +280,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(
+              'OK',
+              style: TextStyle(color: Colors.blue[600]),
+            ),
           ),
         ],
       ),
@@ -275,7 +294,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
     _loadStudentParcels();
     _checkLockerStatus();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Refreshed parcel list')),
+      const SnackBar(
+        content: Text('Refreshed parcel list'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(8)),
+        ),
+      ),
     );
   }
 
@@ -291,149 +316,181 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
         .toList();
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('My Parcels'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Row(
+          children: [
+            // Logo - Replace with your actual logo
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.blue[600],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.local_shipping,
+                size: 18,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Easy Parcel',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
         actions: [
           _buildConnectionStatusIndicator(),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: Icon(Icons.refresh, color: Colors.grey[700]),
             onPressed: _refreshParcels,
             tooltip: 'Refresh',
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: Icon(Icons.logout, color: Colors.grey[700]),
             onPressed: _logout,
             tooltip: 'Logout',
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(
-              text: 'Ready for Pickup',
-              icon: Icon(Icons.inventory_2_outlined),
-            ),
-            Tab(
-              text: 'History',
-              icon: Icon(Icons.history),
-            ),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(100),
+          child: Column(
+            children: [
+              // Welcome Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Welcome, ${user?.name ?? 'Student'}!',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Manage your parcel deliveries',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Tab Bar
+              Container(
+                color: Colors.grey[50],
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: Colors.blue[600],
+                  unselectedLabelColor: Colors.grey[600],
+                  indicatorColor: Colors.blue[600],
+                  indicatorWeight: 3,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  tabs: const [
+                    Tab(
+                      text: 'Ready for Pickup',
+                    ),
+                    Tab(
+                      text: 'History',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          _buildStatusBanner(),
-          _buildWelcomeHeader(user),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                deliveredParcels.isEmpty
-                    ? _buildEmptyState()
-                    : _buildParcelsList(deliveredParcels),
-                collectedParcels.isEmpty
-                    ? _buildHistoryEmptyState()
-                    : _buildParcelsList(collectedParcels),
-              ],
-            ),
-          ),
+          // Tab 1: Ready for Pickup
+          deliveredParcels.isEmpty
+              ? _buildEmptyState()
+              : _buildParcelsList(deliveredParcels),
+          
+          // Tab 2: History
+          collectedParcels.isEmpty
+              ? _buildHistoryEmptyState()
+              : _buildParcelsList(collectedParcels),
         ],
       ),
     );
   }
 
   Widget _buildConnectionStatusIndicator() {
-    return IconButton(
-      icon: _checkingStatus
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(
-              _lockerOnline ? Icons.wifi : Icons.wifi_off,
-              color: _lockerOnline ? Colors.green : Colors.red,
-            ),
-      onPressed: _checkLockerStatus,
-      tooltip: _lockerOnline ? 'Locker Online' : 'Locker Offline',
-    );
-  }
-
-  Widget _buildStatusBanner() {
     return Container(
-      padding: const EdgeInsets.all(12),
-      color: _lockerOnline ? Colors.green[50] : Colors.red[50],
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _checkingStatus
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Icon(
-                  _lockerOnline ? Icons.check_circle : Icons.error,
-                  color: _lockerOnline ? Colors.green : Colors.red,
-                  size: 16,
-                ),
-          const SizedBox(width: 8),
-          Text(
-            _lockerOnline ? 'Locker System: ONLINE' : 'Locker System: OFFLINE',
-            style: TextStyle(
-              color: _lockerOnline ? Colors.green : Colors.red,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (!_lockerOnline && !_checkingStatus)
-            GestureDetector(
-              onTap: _checkLockerStatus,
-              child: const Text(
-                '(Tap to retry)',
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontSize: 12,
-                  decoration: TextDecoration.underline,
-                ),
+      margin: const EdgeInsets.only(right: 8),
+      child: IconButton(
+        icon: _checkingStatus
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                _lockerOnline ? Icons.wifi : Icons.wifi_off,
+                color: _lockerOnline ? Colors.green : Colors.red,
               ),
-            ),
-        ],
+        onPressed: _checkLockerStatus,
+        tooltip: _lockerOnline ? 'Locker Online' : 'Locker Offline',
       ),
     );
   }
-
-  Widget _buildWelcomeHeader(User? user) {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(16),
-    child: Text(
-      'Welcome, ${user?.name ?? 'Student'}!',
-      style: const TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-  );
-}
 
   Widget _buildEmptyState() {
-    return Center(
+    return Padding(
+      padding: const EdgeInsets.all(20),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.inbox, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
-          const Text(
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              Icons.inventory_2_outlined,
+              size: 50,
+              color: Colors.grey[400],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
             'No parcels available',
-            style: TextStyle(fontSize: 18, color: Colors.grey),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             _lockerOnline
                 ? 'Check back later for new deliveries'
                 : 'Locker system is currently offline',
-            style: const TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -442,20 +499,40 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
   }
 
   Widget _buildHistoryEmptyState() {
-    return const Center(
+    return Padding(
+      padding: const EdgeInsets.all(20),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history_toggle_off, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            'No collected parcels yet',
-            style: TextStyle(fontSize: 18, color: Colors.grey),
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              Icons.history_toggle_off,
+              size: 50,
+              color: Colors.grey[400],
+            ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 24),
+          const Text(
+            'No collected parcels yet',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 8),
           Text(
             'Your collected parcels will appear here',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -465,6 +542,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
 
   Widget _buildParcelsList(List<ParcelModel> parcels) {
     return ListView.builder(
+      padding: const EdgeInsets.all(16),
       itemCount: parcels.length,
       itemBuilder: (context, index) {
         final parcel = parcels[index];
@@ -474,29 +552,60 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
   }
 
   Widget _buildParcelCard(ParcelModel parcel) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.grey[100]!,
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.local_shipping, color: Colors.blue),
-                const SizedBox(width: 8),
-                Text(
-                  'Locker: ${parcel.lockerNumber}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: parcel.status == 'delivered' 
+                        ? Colors.orange[50] 
+                        : Colors.green[50],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.local_shipping,
+                    color: parcel.status == 'delivered' 
+                        ? Colors.orange 
+                        : Colors.green,
+                    size: 20,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Locker ${parcel.lockerNumber}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
                 _buildStatusBadge(parcel.status),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _buildParcelDetails(parcel),
             if (parcel.status == 'delivered') ...[
               const SizedBox(height: 16),
@@ -505,12 +614,25 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
             if (parcel.status == 'collected') ...[
               const SizedBox(height: 16),
               OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.blue[600],
+                  side: BorderSide(color: Colors.blue[600]!),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Retrieve OTP'),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Retrieve OTP feature not yet implemented')),
+                      content: Text('Retrieve OTP feature not yet implemented'),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                      ),
+                    ),
                   );
                 },
               )
@@ -526,7 +648,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
     final text = status == 'delivered' ? 'READY FOR PICKUP' : 'COLLECTED';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -554,23 +676,49 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'OTP: ${parcel.otp}',
-          style: const TextStyle(
-            fontFamily: 'Monospace',
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'OTP: ',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                parcel.otp,
+                style: const TextStyle(
+                  fontFamily: 'Monospace',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
           ),
         ),
         if (parcel.status == 'collected') ...[
-          const SizedBox(height: 4),
-          const Text(
-            'Parcel collected successfully',
-            style: TextStyle(
-              color: Colors.green,
-              fontSize: 12,
-            ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green[400], size: 16),
+              const SizedBox(width: 4),
+              const Text(
+                'Parcel collected successfully',
+                style: TextStyle(
+                  color: Colors.green,
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ),
         ],
       ],
@@ -580,7 +728,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
   Widget _buildActionButton(ParcelModel parcel) {
     return _isSendingOTP
         ? const Center(child: CircularProgressIndicator())
-        : ElevatedButton.icon(
+        : ElevatedButton(
             onPressed: _lockerOnline
                 ? () => _sendOTPToHardware(
                       parcel.otp,
@@ -589,15 +737,17 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
                     )
                 : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _lockerOnline ? Colors.green : Colors.grey,
+              backgroundColor: _lockerOnline ? Colors.blue[600] : Colors.grey,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               minimumSize: const Size(double.infinity, 50),
             ),
-            icon: const Icon(Icons.send),
-            label: const Text(
+            child: const Text(
               'Get OTP',
-              style: TextStyle(fontSize: 16),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           );
   }
