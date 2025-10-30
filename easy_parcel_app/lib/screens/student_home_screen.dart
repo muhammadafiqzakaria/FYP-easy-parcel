@@ -41,7 +41,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
   }
 
   void _initializeConnection() {
-    print('🚀 Initializing locker connection...');
+    debugPrint('🚀 Initializing locker connection...');
     _checkLockerStatus();
     _startPeriodicStatusCheck();
   }
@@ -65,7 +65,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
       }
     }, onError: (error) {
       if (mounted) {
-        print('❌❌❌ Error loading parcels: $error ❌❌❌');
+        debugPrint('❌❌❌ Error loading parcels: $error ❌❌❌');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error loading parcels: $error'),
@@ -322,7 +322,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
         elevation: 0,
         title: Row(
           children: [
-            // Logo - Replace with your actual logo
+            // Logo
             Container(
               width: 32,
               height: 32,
@@ -348,109 +348,126 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
           ],
         ),
         actions: [
-          _buildConnectionStatusIndicator(),
-          IconButton(
-            icon: Icon(Icons.refresh, color: Colors.grey[700]),
-            onPressed: _refreshParcels,
-            tooltip: 'Refresh',
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: _buildConnectionStatusIndicator(),
           ),
-          IconButton(
-            icon: Icon(Icons.logout, color: Colors.grey[700]),
-            onPressed: _logout,
-            tooltip: 'Logout',
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              icon: Icon(Icons.refresh, color: Colors.grey[700]),
+              onPressed: _refreshParcels,
+              tooltip: 'Refresh',
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            child: IconButton(
+              icon: Icon(Icons.logout, color: Colors.grey[700]),
+              onPressed: _logout,
+              tooltip: 'Logout',
+            ),
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(100),
-          child: Column(
-            children: [
-              // Welcome Section
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome, ${user?.name ?? 'Student'}!',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Manage your parcel deliveries',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Tab Bar
-              Container(
-                color: Colors.grey[50],
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: Colors.blue[600],
-                  unselectedLabelColor: Colors.grey[600],
-                  indicatorColor: Colors.blue[600],
-                  indicatorWeight: 3,
-                  labelStyle: const TextStyle(
+      ),
+      body: Column(
+        children: [
+          // Welcome Section
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome, ${user?.name ?? 'Student'}!',
+                  style: const TextStyle(
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    color: Colors.black87,
                   ),
-                  tabs: const [
-                    Tab(
-                      text: 'Ready for Pickup',
-                    ),
-                    Tab(
-                      text: 'History',
-                    ),
-                  ],
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  'Manage your parcel deliveries',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Tab Content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Tab 1: Ready for Pickup
+                deliveredParcels.isEmpty
+                    ? _buildEmptyState()
+                    : _buildParcelsList(deliveredParcels),
+                
+                // Tab 2: History
+                collectedParcels.isEmpty
+                    ? _buildHistoryEmptyState()
+                    : _buildParcelsList(collectedParcels),
+              ],
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: TabBar(
+            controller: _tabController,
+            labelColor: Colors.blue[600],
+            unselectedLabelColor: Colors.grey[600],
+            indicatorColor: Colors.transparent,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+            tabs: const [
+              Tab(
+                icon: Icon(Icons.inventory_2_outlined),
+                text: 'Ready for Pickup',
+              ),
+              Tab(
+                icon: Icon(Icons.history),
+                text: 'History',
               ),
             ],
           ),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // Tab 1: Ready for Pickup
-          deliveredParcels.isEmpty
-              ? _buildEmptyState()
-              : _buildParcelsList(deliveredParcels),
-          
-          // Tab 2: History
-          collectedParcels.isEmpty
-              ? _buildHistoryEmptyState()
-              : _buildParcelsList(collectedParcels),
-        ],
-      ),
     );
   }
 
   Widget _buildConnectionStatusIndicator() {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: IconButton(
-        icon: _checkingStatus
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(
-                _lockerOnline ? Icons.wifi : Icons.wifi_off,
-                color: _lockerOnline ? Colors.green : Colors.red,
-              ),
-        onPressed: _checkLockerStatus,
-        tooltip: _lockerOnline ? 'Locker Online' : 'Locker Offline',
-      ),
+    return IconButton(
+      icon: _checkingStatus
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              _lockerOnline ? Icons.wifi : Icons.wifi_off,
+              color: _lockerOnline ? Colors.green : Colors.red,
+            ),
+      onPressed: _checkLockerStatus,
+      tooltip: _lockerOnline ? 'Locker Online' : 'Locker Offline',
     );
   }
 

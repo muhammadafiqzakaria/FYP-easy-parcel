@@ -32,44 +32,46 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
   }
 
   void _loadDeliveryHistory() {
-  final currentUser = _supabaseService.currentUser;
-  if (currentUser?.id == null) {
-    setState(() {
-      _deliveryHistory = [];
-    });
-    return;
+    final currentUser = _supabaseService.currentUser;
+    if (currentUser?.id == null) {
+      setState(() {
+        _deliveryHistory = [];
+      });
+      return;
+    }
+    
+    _supabaseService.getParcelsForCourier(currentUser!.id).listen(
+      (parcels) {
+        if (mounted) {
+          setState(() {
+            _deliveryHistory = parcels;
+          });
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          debugPrint('❌❌❌ Error loading courier history: $error ❌❌❌');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error loading history: $error'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          setState(() {
+            _deliveryHistory = []; 
+          });
+        }
+      },
+    );
   }
-  
-  _supabaseService.getParcelsForCourier(currentUser!.id).listen(
-    (parcels) {
-      if (mounted) {
-        setState(() {
-          _deliveryHistory = parcels;
-        });
-      }
-    },
-    onError: (error) {
-      if (mounted) {
-        print('❌❌❌ Error loading courier history: $error ❌❌❌');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading history: $error'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _deliveryHistory = []; 
-        });
-      }
-    },
-  );
-}
 
   void _startBarcodeScan(BuildContext context) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CourierBarcodeScannerScreen(), // Remove const
+        builder: (context) => const CourierBarcodeScannerScreen(),
       ),
     );
 
@@ -101,17 +103,21 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
 
   void _deliverParcel() async {
     if (_lockerNumberController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter locker number')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter locker number')),
+        );
+      }
       return;
     }
 
     if (_studentIdController.text.isEmpty &&
         _studentEmailController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please provide student ID or email')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please provide student ID or email')),
+        );
+      }
       return;
     }
 
@@ -132,19 +138,25 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
       lockerNumber: _lockerNumberController.text,
     );
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
 
     if (newParcel != null) {
       await _sendDeliveryNotification(newParcel);
-      _showSuccessDialog(newParcel);
+      if (mounted) {
+        _showSuccessDialog(newParcel);
+      }
       _clearForm();
       _loadDeliveryHistory();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to create parcel')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to create parcel')),
+        );
+      }
     }
   }
 
@@ -153,6 +165,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
             Icon(Icons.check_circle, color: Colors.green),
@@ -206,7 +219,14 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
           ],
         ),
         actions: [
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[600],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             onPressed: () {
               Navigator.pop(context);
             },
@@ -227,30 +247,94 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
 
   Widget _buildDeliveryHistory() {
     if (_deliveryHistory.isEmpty) {
-      return const Center(
+      return Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('No delivery history'),
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.history,
+                size: 50,
+                color: Colors.grey[400],
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'No delivery history',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Your delivery history will appear here',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       );
     }
 
     return ListView.builder(
+      padding: const EdgeInsets.all(16),
       itemCount: _deliveryHistory.length,
       itemBuilder: (context, index) {
         final parcel = _deliveryHistory[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: Border.all(
+              color: Colors.grey[100]!,
+            ),
+          ),
           child: ListTile(
-            leading: const Icon(Icons.local_shipping, color: Colors.blue),
-            title: Text('Locker: ${parcel.lockerNumber}'),
+            contentPadding: const EdgeInsets.all(20),
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.local_shipping,
+                color: Colors.blue[600],
+                size: 20,
+              ),
+            ),
+            title: Text(
+              'Locker: ${parcel.lockerNumber}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(height: 8),
                 Text('Student: ${parcel.studentName}'),
                 Text('Email: ${parcel.studentEmail}'),
                 Text('Status: ${parcel.status.toUpperCase()}'),
@@ -260,7 +344,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
               ],
             ),
             trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: parcel.status == 'delivered'
                     ? Colors.orange.withOpacity(0.1)
@@ -307,16 +391,54 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        backgroundColor: Colors.white,
         appBar: AppBar(
-          title: const Text('Courier Dashboard'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.blue[600],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.local_shipping,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Courier Dashboard',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ],
+          ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _logout,
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: IconButton(
+                icon: Icon(Icons.logout, color: Colors.grey[700]),
+                onPressed: _logout,
+              ),
             ),
           ],
-          bottom: const TabBar(
-            tabs: [
+          bottom: TabBar(
+            labelColor: Colors.blue[600],
+            unselectedLabelColor: Colors.grey[600],
+            indicatorColor: Colors.blue[600],
+            indicatorWeight: 3,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+            tabs: const [
               Tab(icon: Icon(Icons.add), text: 'Deliver'),
               Tab(icon: Icon(Icons.history), text: 'History'),
             ],
@@ -324,18 +446,44 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
         ),
         body: TabBarView(
           children: [
+            // Deliver Tab
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    Card(
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: Colors.grey[100]!,
+                        ),
+                      ),
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(20),
                         child: Column(
                           children: [
-                            const Icon(Icons.qr_code_scanner,
-                                size: 64, color: Colors.blue),
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.qr_code_scanner,
+                                size: 30,
+                                color: Colors.blue[600],
+                              ),
+                            ),
                             const SizedBox(height: 16),
                             const Text(
                               'Scan Student Barcode',
@@ -356,8 +504,13 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
                               icon: const Icon(Icons.qr_code_scanner),
                               label: const Text('Scan Barcode'),
                               style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue[600],
+                                foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                     vertical: 15, horizontal: 30),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -378,6 +531,13 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
                               label: Text(_showManualForm
                                   ? 'Hide Manual Entry'
                                   : 'Enter Details Manually'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.blue[600],
+                                side: BorderSide(color: Colors.blue[600]!),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -386,9 +546,23 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
 
                     if (_showManualForm) ...[
                       const SizedBox(height: 20),
-                      Card(
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                          border: Border.all(
+                            color: Colors.grey[100]!,
+                          ),
+                        ),
                         child: Padding(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
                               const Text(
@@ -401,38 +575,46 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _studentIdController,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   labelText: 'Student ID',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.badge),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  prefixIcon: const Icon(Icons.badge),
                                 ),
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _studentNameController,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   labelText: 'Student Name',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.person),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  prefixIcon: const Icon(Icons.person),
                                 ),
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _studentEmailController,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   labelText: 'Student Email',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.email),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  prefixIcon: const Icon(Icons.email),
                                 ),
                                 keyboardType: TextInputType.emailAddress,
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _lockerNumberController,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   labelText: 'Locker Number',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.lock),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  prefixIcon: const Icon(Icons.lock),
                                   hintText: 'e.g., A101, B202',
                                 ),
                               ),
@@ -445,10 +627,15 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
                                       icon: const Icon(Icons.local_shipping),
                                       label: const Text('Deliver Parcel'),
                                       style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue[600],
+                                        foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
                                             vertical: 15),
                                         minimumSize:
                                             const Size(double.infinity, 50),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
                                       ),
                                     ),
                             ],
@@ -461,6 +648,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
               ),
             ),
 
+            // History Tab
             _buildDeliveryHistory(),
           ],
         ),
@@ -471,7 +659,7 @@ class _CourierHomeScreenState extends State<CourierHomeScreen> {
 
 Future<void> _sendDeliveryNotification(ParcelModel parcel) async {
   try {
-    print('📧 Attempting to send notification for parcel: ${parcel.id}');
+    debugPrint('📧 Attempting to send notification for parcel: ${parcel.id}');
     
     // First, get the student's user_id from their email
     final studentProfileResponse = await Supabase.instance.client
@@ -492,12 +680,12 @@ Future<void> _sendDeliveryNotification(ParcelModel parcel) async {
         'parcel_id': parcel.id,
       });
       
-      print('✅ Delivery notification stored for user: $studentId');
+      debugPrint('✅ Delivery notification stored for user: $studentId');
     } else {
-      print('❌ Student profile not found for email: ${parcel.studentEmail}');
+      debugPrint('❌ Student profile not found for email: ${parcel.studentEmail}');
     }
     
   } catch (e) {
-    print('❌ Error sending notification: $e');
+    debugPrint('❌ Error sending notification: $e');
   }
 }
