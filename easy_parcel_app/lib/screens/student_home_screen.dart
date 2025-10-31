@@ -683,64 +683,37 @@ class _StudentHomeScreenState extends State<StudentHomeScreen>
   }
 
   Widget _buildParcelDetails(ParcelModel parcel) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Status: ${parcel.status.toUpperCase()}',
-          style: TextStyle(
-            color: parcel.status == 'delivered' ? Colors.orange : Colors.green,
-            fontWeight: FontWeight.w500,
-          ),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Status: ${parcel.status.toUpperCase()}',
+        style: TextStyle(
+          color: parcel.status == 'delivered' ? Colors.orange : Colors.green,
+          fontWeight: FontWeight.w500,
         ),
+      ),
+      const SizedBox(height: 8),
+      // REMOVED the OTP display section
+      if (parcel.status == 'collected') ...[
         const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'OTP: ',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
+        Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green[400], size: 16),
+            const SizedBox(width: 4),
+            const Text(
+              'Parcel collected successfully',
+              style: TextStyle(
+                color: Colors.green,
+                fontSize: 12,
               ),
-              Text(
-                parcel.otp,
-                style: const TextStyle(
-                  fontFamily: 'Monospace',
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-        if (parcel.status == 'collected') ...[
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.green[400], size: 16),
-              const SizedBox(width: 4),
-              const Text(
-                'Parcel collected successfully',
-                style: TextStyle(
-                  color: Colors.green,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ],
       ],
-    );
-  }
+    ],
+  );
+}
 
   Widget _buildActionButton(ParcelModel parcel) {
     return _isSendingOTP
