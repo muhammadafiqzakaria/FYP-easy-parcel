@@ -23,8 +23,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   bool _torchEnabled = false;
   CameraFacing _cameraFacing = CameraFacing.back;
 
-  final SupabaseService _supabaseService =
-      SupabaseService(); // Use SupabaseService
+  final SupabaseService _supabaseService = SupabaseService();
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +103,17 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white60, fontSize: 12),
                 ),
+                if (_isProcessing) ...[
+                  const SizedBox(height: 8),
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Processing...',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
               ],
             ),
           ),
@@ -127,6 +137,9 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
 
     cameraController.stop();
 
+    // Debug: Check what's in the database first
+    await _supabaseService.debugParcelData(widget.parcelId);
+
     final success = await _verifyAndUpdateParcel(scannedBarcode);
 
     setState(() {
@@ -143,7 +156,6 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   Future<bool> _verifyAndUpdateParcel(String scannedBarcode) async {
     try {
       return await _supabaseService.verifyBarcodeAndCollect(
-        // Use SupabaseService
         widget.parcelId,
         scannedBarcode,
       );
@@ -174,7 +186,6 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text('Locker: ${widget.lockerNumber}'),
-            Text('Parcel ID: ${widget.parcelId}'),
             const SizedBox(height: 16),
             const Text(
               'Parcel collection has been recorded successfully.',
@@ -218,6 +229,12 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
               'Please make sure you are scanning the correct barcode for this parcel.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'The scanned email must match the student email in our system.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Colors.red),
             ),
           ],
         ),

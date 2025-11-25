@@ -15,25 +15,25 @@ class SupabaseService {
   User? get currentUser => _currentUser;
 
   Future<User?> loadUserFromSession() async {
-  final supabaseUser = _supabase.auth.currentUser;
-  if (supabaseUser == null) {
-    return null;
-  }
-  
-  try {
-    final profileData = await _supabase
-        .from('profiles')
-        .select()
-        .eq('id', supabaseUser.id) 
-        .single();
+    final supabaseUser = _supabase.auth.currentUser;
+    if (supabaseUser == null) {
+      return null;
+    }
     
-    _currentUser = User.fromMap(profileData);
-    return _currentUser;
-  } catch (e) {
-    print('Error loading user profile: $e');
-    return null;
+    try {
+      final profileData = await _supabase
+          .from('profiles')
+          .select()
+          .eq('id', supabaseUser.id) 
+          .single();
+      
+      _currentUser = User.fromMap(profileData);
+      return _currentUser;
+    } catch (e) {
+      print('Error loading user profile: $e');
+      return null;
+    }
   }
-}
   
   Future<User?> signUp({
     required String email,
@@ -77,32 +77,32 @@ class SupabaseService {
   }
 
   Future<User?> signIn(String email, String password) async {
-  try {
-    final supabase.AuthResponse response =
-        await _supabase.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    try {
+      final supabase.AuthResponse response =
+          await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
 
-    if (response.user == null) {
-      return null;
+      if (response.user == null) {
+        return null;
+      }
+
+      // Fetch the user's info from the 'profiles' table
+      final profileData = await _supabase
+          .from('profiles')
+          .select()
+          .eq('id', response.user!.id)
+          .single();
+
+      final user = User.fromMap(profileData);
+      _currentUser = user;
+      return _currentUser;
+    } catch (e) {
+      print('Sign in error: $e');
+      rethrow;
     }
-
-    // Fetch the user's info from the 'profiles' table
-    final profileData = await _supabase
-        .from('profiles')
-        .select()
-        .eq('id', response.user!.id)
-        .single();
-
-    final user = User.fromMap(profileData);
-    _currentUser = user;
-    return _currentUser;
-  } catch (e) {
-    print('Sign in error: $e');
-    rethrow;
   }
-}
 
   Future<void> signOut() async {
     try {
@@ -182,26 +182,97 @@ class SupabaseService {
   }
 
   Future<bool> verifyBarcodeAndCollect(
-      String parcelId, String scannedBarcode) async {
+      String parcelId, String scannedData) async {
     try {
-      final response =
-          await _supabase.from('parcels').select().eq('id', parcelId).single();
+      // Get the parcel data
+      final response = await _supabase
+          .from('parcels')
+          .select()
+          .eq('id', parcelId)
+          .single();
 
       final parcel = ParcelModel.fromMap(response);
 
-      if (parcel.barcode != scannedBarcode) {
+      // Clean the scanned data
+      String cleanedScan = _cleanScannedData(scannedData);
+      String expectedEmail = parcel.studentEmail.trim().toLowerCase();
+
+      // Debug information
+      print('=== BARCODE VERIFICATION DEBUG ===');
+      print('Parcel ID: $parcelId');
+      print('Scanned Data: $scannedData');
+      print('Cleaned Scan: $cleanedScan');
+      print('Expected Email: $expectedEmail');
+      print('Match: ${cleanedScan == expectedEmail}');
+      print('================================');
+
+      // Verify if the cleaned scanned data matches the student email
+      if (cleanedScan != expectedEmail) {
+        print('❌ Email verification failed!');
+        print('❌ Expected: $expectedEmail');
+        print('❌ Got: $cleanedScan');
         return false;
       }
 
-      await _supabase.from('parcels').update({
-        'status': 'collected',
-        'collection_time': DateTime.now().millisecondsSinceEpoch,
-      }).eq('id', parcelId);
+      // Update parcel status to collected
+      final updateResult = await _supabase
+          .from('parcels')
+          .update({
+            'status': 'collected',
+            'collectionTime': DateTime.now().millisecondsSinceEpoch,
+          })
+          .eq('id', parcelId);
 
+      print('✅ Collection confirmed for parcel: $parcelId');
       return true;
     } catch (e) {
-      print('Error verifying barcode: $e');
+      print('❌ Error verifying barcode: $e');
       return false;
+    }
+  }
+
+  String _cleanScannedData(String scannedData) {
+    String cleaned = scannedData.trim().toLowerCase();
+    
+    // Remove URL prefixes
+    if (cleaned.startsWith('http://')) {
+      cleaned = cleaned.substring(7);
+    } else if (cleaned.startsWith('https://')) {
+      cleaned = cleaned.substring(8);
+    }
+    
+    // Remove any paths or parameters
+    if (cleaned.contains('/')) {
+      cleaned = cleaned.split('/').first;
+    }
+    if (cleaned.contains('?')) {
+      cleaned = cleaned.split('?').first;
+    }
+    
+    return cleaned.trim();
+  }
+
+  // Debug method to check parcel data
+  Future<void> debugParcelData(String parcelId) async {
+    try {
+      final response = await _supabase
+          .from('parcels')
+          .select()
+          .eq('id', parcelId)
+          .single();
+      
+      final parcel = ParcelModel.fromMap(response);
+      
+      print('=== PARCEL DEBUG INFO ===');
+      print('Parcel ID: ${parcel.id}');
+      print('Student Email: ${parcel.studentEmail}');
+      print('Status: ${parcel.status}');
+      print('Locker: ${parcel.lockerNumber}');
+      print('OTP: ${parcel.otp}');
+      print('Barcode: ${parcel.barcode}');
+      print('=========================');
+    } catch (e) {
+      print('Error debugging parcel: $e');
     }
   }
 }

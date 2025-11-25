@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class ESP32Service {
-  static const String esp32IP = "10.59.125.229";
+  static const String esp32IP = "10.32.24.229";
   static const int timeoutSeconds = 5;
 
   // Test connection to ESP32

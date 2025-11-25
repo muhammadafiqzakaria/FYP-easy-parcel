@@ -233,12 +233,6 @@ void setupWebServer() {
   Serial.println(WiFi.localIP());
 }
 
-// REMOVE THE DUPLICATE HANDLER FUNCTIONS - DELETE THESE:
-// void handleOTP() { ... }
-// void handleStatus() { ... } 
-// void handleCurrentOTP() { ... }
-// void handleRoot() { ... }
-
 // Function to print centered text
 void printCentered(String text, int line) {
   lcd.setCursor(0, line);
