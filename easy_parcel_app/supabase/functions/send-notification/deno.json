@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "supabase": "npm:@supabase/supabase-js@2",
+    "firebase-admin": "npm:firebase-admin@12", 
+    "std/": "https://deno.land/std@0.168.0/" 
+  }
+}
