@@ -3,12 +3,12 @@ An IoT-based smart locker system designed to solve parcel collection challenges 
 
 Welcome to the Easy Parcel project repository. This project is the practical implementation of my Bachelor's Final Year Project, a complete IoT system comprising a mobile application, an ESP32-based smart locker, and a cloud backend to modernize and secure parcel delivery in university residential areas.
 
-Project Overview
+## Project Overview
 Traditional centralized campus parcel hubs often lead to long queues, inconvenient operating hours, and accessibility issues. Easy Parcel tackles this by decentralizing delivery with secure, self-service smart lockers.
 
 This repository contains the mobile application, which acts as the central user interface for both students and couriers, enabling seamless parcel management, tracking, and secure locker access via One-Time Passwords (OTP).
 
-🚀 Key Features
+## Key Features
 Dual-Role Mobile App: Separate, intuitive interfaces for Students and Couriers built with Flutter.
 
 Secure Access: Parcel retrieval is protected by system-generated One-Time Passwords (OTP).
@@ -21,10 +21,7 @@ IoT Hardware Control: The app communicates directly with the ESP32 locker to sen
 
 Cloud-Backed: Utilizes Supabase for robust backend services (Authentication, Database, Realtime).
 
-📱 Mobile App Screenshots
-Student Login	Student Dashboard (Ready for Pickup)
-Courier Login	Courier Delivery Interface
-🛠️ Tech Stack
+## Tech Stack
 Frontend/Mobile: Flutter (Dart) - For a single codebase cross-platform app.
 
 Backend & Database: Supabase - Provides PostgreSQL database, authentication, and real-time APIs.
@@ -35,32 +32,15 @@ State Management: Provider / Riverpod (as used in the project).
 
 Barcode Scanning: mobile_scanner package.
 
-📂 Repository Structure
-The main application code is located in the easy_parcel_app/ directory.
-
-text
-FYP-easy-parcel/
-├── easy_parcel_app/          # Flutter Mobile Application (MAIN APP)
-│   ├── lib/
-│   │   ├── models/          # Data models (Parcel, User)
-│   │   ├── services/        # Supabase service, API client
-│   │   ├── providers/       # State management
-│   │   ├── screens/         # UI screens (Login, Student/Courier Home, History)
-│   │   └── widgets/         # Reusable UI components
-│   ├── pubspec.yaml         # Flutter dependencies
-│   └── ...
-├── easy-parcel-fyp/          # ESP32 Hardware & Firmware Code (C++)
-├── dissertation/             # Project dissertation and documentation
-└── README.md                 # This file
-⚙️ Getting Started
-Prerequisites
+## Getting Started
+### Prerequisites
 Flutter SDK: Ensure Flutter is installed. Follow the official Flutter installation guide.
 
 Supabase Project: Create a free project at supabase.com. You will need your Project URL and anon public API key.
 
 IDE: VS Code or Android Studio with the Flutter plugin.
 
-Installation & Setup
+### Installation & Setup
 Clone the repository:
 
 bash
@@ -83,12 +63,13 @@ Run the App:
 
 bash
 flutter run
-🔐 User Roles & Flow
+
+## User Roles & Flow
 Courier Flow: Register/Login → Navigate to "Deliver" tab → Enter student details (or scan barcode) → Assign locker → System generates OTP for the student.
 
 Student Flow: Register/Login → View "Ready for Pickup" parcels → Tap "Get OTP" → OTP is sent to the physical locker → Enter OTP on locker keypad to unlock and collect parcel → Scan parcel barcode in-app to confirm collection.
 
-🔗 System Architecture
+## System Architecture
 The mobile app is the central hub connecting all components:
 
 text
@@ -97,19 +78,14 @@ Flutter Mobile App (This Repo)
     Supabase Cloud Backend
         ⇅ (Wi-Fi)
 ESP32 Smart Locker Hardware
-🧪 Testing & Validation
-The system underwent functional, integration, and user acceptance testing as detailed in the dissertation. Survey results from students and couriers showed high satisfaction in usability, effectiveness, and security.
 
-📖 Documentation
-For a deep dive into the project's motivation, design decisions, methodology, and full results, please refer to the complete dissertation included in this repository (21001351_FYP2_DISSERTATION.pdf).
-
-🤝 Contributing
+## Contributing
 This is a Final Year Project archive. While not actively seeking contributions, suggestions and discussions are welcome. Please feel free to open an Issue.
 
-📜 License
+## License
 This project is for academic purposes. All rights reserved by the author.
 
-👤 Author
+## Author
 Muhammad Afiq bin Zakaria
 Final Year Student, Computer Science
 Universiti Teknologi PETRONAS (UTP)
