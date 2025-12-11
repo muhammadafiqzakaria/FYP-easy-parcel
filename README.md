@@ -1,4 +1,4 @@
-Easy Parcel: IoT Smart Locker System for Campus
+#Easy Parcel: IoT Smart Locker System for Campus
 An IoT-based smart locker system designed to solve parcel collection challenges for university students.
 
 Welcome to the Easy Parcel project repository. This project is the practical implementation of my Bachelor's Final Year Project, a complete IoT system comprising a mobile application, an ESP32-based smart locker, and a cloud backend to modernize and secure parcel delivery in university residential areas.
