@@ -1,0 +1,20 @@
+TY  - JOUR
+AU  - Alzhrani, Abdulrahman A.
+AU  - Balfaqih, Mohammed
+AU  - Alsenani, Fadi
+AU  - Alharthi, Mohemmed
+AU  - Alshehri, Ali
+AU  - Balfagih, Zain
+PY  - 2024/08/02
+Y2  - 2025/11/10
+TI  - Design and Implementation of an IoT-Integrated Smart Locker System utilizing Facial Recognition Technology
+JF  - Engineering, Technology & Applied Science Research
+JA  - Eng. Technol. Appl. Sci. Res.
+VL  - 14
+IS  - 4
+SE  - 
+DO  - 10.48084/etasr.7737
+UR  - https://etasr.com/index.php/ETASR/article/view/7737
+SP  - 16000-16010
+AB  - &lt;p class=&quot;ETASRabstract&quot;&gt;&lt;span lang=&quot;EN-US&quot;&gt;The Internet of Things (IoT) has been widely employed in the development of smart locker systems over the last decade. However, some of these systems are based on authentication methods which lack flexibility. Such systems did not consider the possibility that an authentication method could be unavailable for different reasons, namely access card loss, camera or mice break, etc. Moreover, such systems do not consider dual-authentication methods that enhance security. This paper aims to develop a smart locker system that considers several authentication methods including dual authentication (phone number and One Time Password (OTP)), fingerprint, face recognition, and emergency code utilizing IoT technology. Dual authentication method is the considered base authentication method. The system has been fabricated and evaluated taking into account different scenarios including monitoring door status, ensuring access for authorized users, and denying access to unauthorized users.&lt;/span&gt;&lt;/p&gt;
+ER  -
